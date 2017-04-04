@@ -46,8 +46,10 @@ tmoose@ubuntu:~/rapid7/vm-automation$ python
 True
 ```
 OK, yeah; I probably should not have made the port number a string....
-Anyway, That just got us a connection to the server.
-Let's query the Type of Server:
+Anyway, that `connect` got us a connection to the server which is stored
+in the class and reused when we need to talk to the server.  It also 
+registered the connection for removal when our process exits.
+Let's query the type of Server:
 ```
 >>> print myserver.getVersion()
 VMware ESXi 6.5.0 build-4564106
@@ -213,7 +215,8 @@ serverlog:[2017-04-04 16:06:16.775557] FINDING SNAPSHOTS FOR [APT] Windows 10x64
    replaySupported = false
 }, 'TURNED_OFF/TESTING_BASE')
 ```
-Well, that did not help because snapshots are pyvmomi objects.... let's
+I admit that was less than helpful because the snapshots are stored as 
+pyvmomi snapshot objects, but you can get the snapshot names:
 get something useful and list them by name:
 ```
 >>> for snapshot in vmDic['[APT] Windows 10x64 Pro'].snapshotList:
@@ -222,10 +225,11 @@ get something useful and list them by name:
 TURNED_OFF
 TESTING_BASE
 ```
-OK, well, most of the snapshot work abstracts the pyvmomi class.
-Let's look at creating a snapshot.  (Turning off the VM first makes it 
-faster).  There are lots of optional parameters for these functions,
-but I assumed most common use-cases.
+Even then, it is not much of an issue, as most of the snapshot functions
+use snapshot names rather than the pyvmomi class variables.
+For example, let's look at creating a snapshot.  (Turning off the VM
+first makes it faster).  There are lots of optional parameters for these
+functions, but I assumed most common use-cases as teh default values.
 ```
 >>> vmDic['[APT] Windows 10x64 Pro'].powerOff()
 serverlog:[2017-04-04 16:16:13.734495] POWERING OFF [APT] Windows 10x64 Pro
