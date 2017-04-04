@@ -7,6 +7,8 @@ Workstation through the vmrun.exe command-line application and ESXi
 through encapsulation of pyvmomi functions.  My testing has used python 
 2.7.
 
+#### Note: VMWare workstation support may be a bit behnd ESXi
+
 ### Why bother to encapsulate pyvmomi and vmrun.exe?
 I'm no big fan of re-inventing the wheel, but I did so here for two 
 reasons:
