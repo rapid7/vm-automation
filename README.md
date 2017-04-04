@@ -7,8 +7,11 @@ Workstation through the vmrun.exe command-line application and ESXi
 through encapsulation of pyvmomi functions.  My testing has used python 
 2.7.
 
-#### Note: VMWare workstation support may be a bit behnd ESXi
-
+#### Note: 
+* VMWare workstation support may be a bit behnd ESXi
+* Currently, I have logging to the screen turned on to help with 
+debugging.  vm-automation logs to a file passed into the intialization
+function for the server.  The default name is `defaultLogfile.log`
 ### Why bother to encapsulate pyvmomi and vmrun.exe?
 I'm no big fan of re-inventing the wheel, and I conceed that is a bit of
 what I did here, but I did it for some very good reasons:
@@ -57,7 +60,7 @@ Let's query the type of Server:
 VMware ESXi 6.5.0 build-4564106
 ```
 By default, nothing happens other than establishing the session.
-If we wanted to get a list ov VMs on the server, we need to populate
+If we wanted to get a list of VMs on the server, we need to populate
 that list, first:
 ```
 >>> myserver.enumerateVms()
