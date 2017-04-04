@@ -29,7 +29,7 @@ Right now, it has all the functions that I need to run automated payload
 testing, but I'm all for adding on to support more projects.
 
 ### How do I use it?
-# If you don't have python, crawl out from under the rock and install
+* If you don't have python, crawl out from under the rock and install
 it.
 * Install [pyvmomi](https://pypi.python.org/pypi/pyvmomi) on your machine:
 `pip install --upgrade pyvmomi`
