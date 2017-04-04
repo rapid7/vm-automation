@@ -119,7 +119,6 @@ True
 Let's grab a process list:
 ```
 >>> vmDic['[APT] Windows 10x64 Pro'].updateProcList()
->>> vmDic['[APT] Windows 10x64 Pro'].updateProcList()
 True
 >>> for proc in vmDic['[APT] Windows 10x64 Pro'].procList:
 ...     print proc
@@ -219,7 +218,6 @@ serverlog:[2017-04-04 16:06:16.775557] FINDING SNAPSHOTS FOR [APT] Windows 10x64
 ```
 I admit that was less than helpful because the snapshots are stored as 
 pyvmomi snapshot objects, but you can get the snapshot names:
-get something useful and list them by name:
 ```
 >>> for snapshot in vmDic['[APT] Windows 10x64 Pro'].snapshotList:
 ...     print snapshot[0].name
