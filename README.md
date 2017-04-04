@@ -10,12 +10,12 @@ through encapsulation of pyvmomi functions.  My testing has used python
 #### Note: VMWare workstation support may be a bit behnd ESXi
 
 ### Why bother to encapsulate pyvmomi and vmrun.exe?
-I'm no big fan of re-inventing the wheel, but I did so here for two 
-reasons:
-(1) Using this library allows me to seamlessly manage VMware workstation 
+I'm no big fan of re-inventing the wheel, and I conceed that is a bit of
+what I did here, but I did it for some very good reasons:
+# Using this library allows me to seamlessly manage VMware workstation 
 VMs and VMWare ESXi VMs because each server type has a class, and I 
-overloaded the management functions to work with both classes.
-(2) Pyvmomi is not particularly simple.  If you do not believe me, see 
+overloaded the management functions to work with both classes.<BR>
+# Pyvmomi is not particularly simple.  If you do not believe me, see 
 the `uploadFileToGuest` function.  It contains the pyvmomi calls to
 upload a file to a guest OS.  It's about 40 lines.  Even worse is the
 code to get a list of VM snapshots, which requires a recurive search.
@@ -29,11 +29,11 @@ Right now, it has all the functions that I need to run automated payload
 testing, but I'm all for adding on to support more projects.
 
 ### How do I use it?
-(1) If you don't have python, crawl out from under the rock and install
+# If you don't have python, crawl out from under the rock and install
 it.
-(2) Install [pyvmomi](https://pypi.python.org/pypi/pyvmomi) on your machine:
+# Install [pyvmomi](https://pypi.python.org/pypi/pyvmomi) on your machine:
 `pip install --upgrade pyvmomi`
-(3) Git this repo:
+# Git this repo:
 `git clone git@github.com:rapid7/vm-automation.git`
 
 ### How can I get started?
@@ -276,34 +276,34 @@ server class:
 `waitForVmsToBoot`
 
 Vm Class:
-`checkTools`
-`deleteSnapshot`
-`enumerateSnapshotsRecursively`
-`getArch`
-`getFileFromGuest`
-`getSnapshots`
-`getVmIp`
-`getUsername`
-`isPoweredOff`
-`isPoweredOn`
-`makeDirOnGuest`
-`powerOn`
-`powerOff`
-`revertToSnapshot`
-`runCmdOnGuest`
-`setPassword`
-`setUsername`
-`setVmIp`
-`takeSnapshot`
-`updateProcList`
-`uploadAndRun`
-`uploadFileToGuest`
-`waitForTask`
+* `checkTools`
+* `deleteSnapshot`
+* `enumerateSnapshotsRecursively`
+* `getArch`
+* `getFileFromGuest`
+* `getSnapshots`
+* `getVmIp`
+* `getUsername`
+* `isPoweredOff`
+* `isPoweredOn`
+* `makeDirOnGuest`
+* `powerOn`
+* `powerOff`
+* `revertToSnapshot`
+* `runCmdOnGuest`
+* `setPassword`
+* `setUsername`
+* `setVmIp`
+* `takeSnapshot`
+* `updateProcList`
+* `uploadAndRun`
+* `uploadFileToGuest`
+* `waitForTask`
 
 These are less useful in general, but very useful to automated testing.
 In time, they may get moved:
-`prepVm`
-`revertToTestingBase`
-`revertDevVm`
-`setTestVm`
-`takeTempSnapshot`
+* `prepVm`
+* `revertToTestingBase`
+* `revertDevVm`
+* `setTestVm`
+* `takeTempSnapshot`
