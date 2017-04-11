@@ -7,11 +7,22 @@ vmrunExe = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe"
 vmPath = "D:\\VMs"
 
 class workstationServer:
-    def __init__(self, vmRunExe, vmPath):
+    def __init__(self, vmRunExe, vmPath, logFile = "default.log"):
         self.vmrunExe = vmRunExe
         self.vmPath = vmPath
         self.vmList = []
-        
+        return None
+
+    def __init__(self, configDic, logFile = "default.log"):
+        try:
+            self.vmrunExe =     configDictionary['VMRUN_PATH']
+            self.vmPath =       configDictionary['VM_PATH']
+        except ValueError as e:
+            print "CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e)
+            return None
+        self.vmList = []
+        return None
+    
     def enumerateVms(self, negFilter = None):
         for root, dirs, files in os.walk(vmPath):
             for file in files:
@@ -20,7 +31,7 @@ class workstationServer:
                         continue
                     else:
                         self.vmList.append(workstationVm(os.path.join(root, file)))
-        return len(self.vmList)
+        return True
     
     def waitForVmsToBoot(self, vmList):
         apt_shared.logMsg("WAITING FOR VMS TO BE READY; THIS COULD TAKE A FEW MINUTES")
