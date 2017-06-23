@@ -46,7 +46,7 @@ either VMWare ESXi or Workstation).
 ```
 tmoose@ubuntu:~/rapid7/vm-automation$ python
 >>> import esxiVm
->>> myserver = esxiServer("xxx.xxx.xxx.xxx", "user", "password", "443", "example.log")
+>>> myserver = esxiVm.esxiServer("xxx.xxx.xxx.xxx", "user", "password", "443", "example.log")
 >>> print myserver.connect()
 True
 ```
