@@ -12,7 +12,6 @@ import requests
 from socket import error as SocketError
 import ssl
 import time
-from samba.dcerpc.dcerpc import DCERPC_FAULT_TODO
 import json
 
 def createFromConfig(configDictionary, logFile = "defaultLogfile.log"):
