@@ -8,6 +8,9 @@ through encapsulation of pyvmomi functions.  My testing has used python
 2.7.
 
 #### Note: 
+* This is a dependency for an in-development internal R7 tool.  Some functions
+might be modified in the near term with regard to parameters and return values 
+to support that internal project.
 * VMWare workstation support may be a bit behnd ESXi
 * Currently, I have logging to the screen turned on to help with 
 debugging.  vm-automation logs to a file passed into the intialization
