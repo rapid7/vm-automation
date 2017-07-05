@@ -1,7 +1,3 @@
-"""
-GOOD RESOURCE: http://programtalk.com/python-examples/pyVmomi.vim.vm.guest.NamePasswordAuthentication/
-"""
-
 
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim, vmodl
@@ -310,7 +306,7 @@ class esxiVm:
                     pass
                 #SOMETIMES THE VM GETS SQUIRRLEY; IF SO, JUST TRY AGAIN
                 except Exception as e:
-                    self.server.logMsg("VM IN A STRANGE STATE; SKIPPING PROCESSLIST UPDATE:\n" + str(e))
+                    self.server.logMsg("UNPREDICTED EXCEPTION:\n" + str(e))
                     continue
             else:
                 self.server.logMsg("THERE IS A PROBLEM WITH THE VMWARE TOOLS ON " + self.vmName)
