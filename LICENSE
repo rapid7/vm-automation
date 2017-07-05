@@ -2,7 +2,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: http://www.metasploit.com/
 
 Files: *
-Copyright: 2006-2017, Rapid7, Inc.
+Copyright: 2017, Rapid7, Inc.
 License: BSD-3-clause
 
 Redistribution and use in source and binary forms, with or without modification,
