@@ -42,9 +42,12 @@ it.
 * Git this repo:
 `git clone git@github.com:rapid7/vm-automation.git`
 
+### What Hypervisors are supported?
+Right now, just VMWare Workstation and ESXi (vSphere).  I was sad to find out that the API calls this repo uses are only available on the paid version of ESXi, but we all gotta' eat, so I can't be too mad.  Hopefully, in the future, we can get support up and running for something like Virtualbox.
+
 ### How can I get started?
 The fastest way to get started is to instantiate a server (it can be 
-either VMWare ESXi or Workstation).
+either VMWare ESXi or Workstation).  I need to add some documentation for Workstation, because I've been focused on ESXi so far.
 
 ```
 tmoose@ubuntu:~/rapid7/vm-automation$ python
