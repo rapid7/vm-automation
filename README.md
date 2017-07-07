@@ -317,7 +317,7 @@ There are several ways to contribute:
 * If there's something you'd like to be able to do with a virtual machine that's not supported, go for it!
 * If there's a hypervisor you'd like supported, please feel free to start a library to support it; just please make sure you match the function names!  I'd love to add support for virtualbox because it is free, but I do not know when I will get time, and I have not looked to how hard it would be.
 * If you want to add Unit testing to make sure that the functions are supported correctly across classes, you would be doing God's work.
-* If you want to go back and catch the VMWare workstation livbrary up to the ESXi library, that would help a lot, and it would just be making sure function names and return values are the same.
-* If you run therought the examples above and one is wrong, correct it for quick contributing karma!
+* If you want to go back and catch the VMWare workstation library up to the ESXi library, that would help a lot, and it would just be making sure function names and return values are the same.
+* If you run through the examples above and one is wrong, correct it for quick contributing karma!
 
 
