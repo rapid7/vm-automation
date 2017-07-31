@@ -359,6 +359,33 @@ class esxiVm:
                 time.sleep(1)
         return self.vmIp
     
+    def getVmInterfaces(self):
+        """ 
+        IT IS POSSIBLE TO GET NO IP ADDRESS IN THE GAP BETWEEN WHEN VMWARE 
+        TOOLS FINISHES LOADING AND BEFORE NETWORKING SERVICES START
+        THIS WILL TRY TO GET THE IP ADDRESS FOR 2 MINUTES
+        """
+        ipAttempts = 120
+        for i in range(ipAttempts):
+            self.vmInterfaces = []
+
+            for nic in self.vmObject.guest.net:
+                addresses = nic.ipConfig.ipAddress
+
+                IPs = []
+                for addr in addresses:
+                    IPs.append("%s/%s" % (addr.ipAddress,addr.prefixLength))
+
+                self.vmInterfaces.append((nic.macAddress,IPs,nic.network))
+
+            if self.vmInterfaces != []:
+                break
+            else:
+                strAttempt = "(ATTEMPT " + str(i) + " OF " + str(ipAttempts) + ")"
+                self.server.logMsg(strAttempt + " FAILED TO GET IP ADDRESS FROM " + self.vmName)
+                time.sleep(1)
+        return self.vmInterfaces
+    
     def getUsername(self):
         return self.vmUsername
     
