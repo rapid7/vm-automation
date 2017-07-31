@@ -179,6 +179,7 @@ class esxiServer:
                                                           True)
         vimVmList = objView.view
         objView.Destroy()
+        self.vmList = []
         for i in vimVmList:
             if negFilter != None and negFilter.upper() in i.name.upper():
                 continue
