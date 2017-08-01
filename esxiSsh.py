@@ -153,7 +153,7 @@ class esxiSsh(esxiVm.esxiServer):
 
         # Wait for the VMDK copying to complete, and check for errors
         while True:
-            i = session.expect(["Clone: 100% done.","Failed to clone disk"], timeout=None)
+            i = session.expect(["Clone: 100% done.","Failed to clone disk","Failed to lock the file"], timeout=60*30)
             if i == 0:
                 break
             elif i == 1:
@@ -164,12 +164,26 @@ class esxiSsh(esxiVm.esxiServer):
                 except pexpect.TIMEOUT:
                     self.fatalError("An unknown error occured copying the VMDK.  Here, have a shell:")
                     session.interact()
+            elif i == 2:
+                self.fatalError("Unable to lock the VMDK file.  The VM must be powered off.")
+                return False
 
         # One last thing, register the new VM in the ESXi inventory
         session.sendline('vim-cmd solo/registervm ' + path + '/' + destVm + '/' + srcVm + '.vmx ' \
                          + destVm)
-        session.expect('[0-9]*', timeout=10)
-        return True
+        try:
+            i = session.expect(['^[0-9]+$'], timeout=30)
+            if i == 0:
+                print session.before
+                print session.after
+            else:
+                print "???"
+            return True
+        except pexpect.TIMEOUT:
+            return False
+
+        session.sendline("exit")
+        session.expect(["Connection to .* closed."],timeout=10)
 
     def loginToEsx(self):
         session = pexpect.spawn('ssh -o ConnectTimeout=5 ' + self.username + '@' + self.hostname)
@@ -194,9 +208,8 @@ class esxiSsh(esxiVm.esxiServer):
         # srcVm could be a name (str), a vmId (int), or a vm object (vmObject)
         # destVm must be a name (what about workstation?  where will I store the new VM?)
         #                        what about ESXi?  What datastore should I use?
-        #self.enumerateVms()
 
-        myserver.enumerateVms()
+        self.enumerateVms()
 
         if type(srcVm) == str:
             datastore, srcVmdk = self.findVmdkByName(srcVm)
