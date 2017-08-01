@@ -24,4 +24,4 @@ setup(name='vm_automation',
       ],
       platforms=['Windows', 'Linux', 'Solaris', 'Mac OS-X', 'Unix'],
       keywords='vsphere vmware esx',
-      zip_safe=False)
+      zip_safe=True)
