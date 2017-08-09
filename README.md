@@ -238,7 +238,7 @@ Even then, it is not much of an issue, as most of the snapshot functions
 use snapshot names rather than the pyvmomi class variables.
 For example, let's look at creating a snapshot.  (Turning off the VM
 first makes it faster).  There are lots of optional parameters for these
-functions, but I assumed most common use-cases as teh default values.
+functions, but I assumed most common use-cases as the default values.
 ```
 >>> vmDic['[APT] Windows 10x64 Pro'].powerOff()
 serverlog:[2017-04-04 16:16:13.734495] POWERING OFF [APT] Windows 10x64 Pro
