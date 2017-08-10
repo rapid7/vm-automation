@@ -1,2 +1,5 @@
-gnore compiled python
+# ignore compiled python
 *.pyc
+/dist/
+/*.egg-info
+/.idea

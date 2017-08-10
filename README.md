@@ -51,8 +51,8 @@ either VMWare ESXi or Workstation).  I need to add some documentation for Workst
 
 ```
 tmoose@ubuntu:~/rapid7/vm-automation$ python
->>> import esxiVm
->>> myserver = esxiVm.esxiServer("xxx.xxx.xxx.xxx", "user", "password", "443", "example.log")
+>>> import vm_automation
+>>> myserver = vm_automation.esxiServer("xxx.xxx.xxx.xxx", "user", "password", "443", "example.log")
 >>> print myserver.connect()
 True
 ```
