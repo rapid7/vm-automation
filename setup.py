@@ -9,7 +9,6 @@ setup(name='vm_automation',
       license=open("LICENSE").read(),
       packages=['vm_automation'],
       install_requires=[
-          'pyVim',
           'pyVmomi',
       ],
       classifiers=[
