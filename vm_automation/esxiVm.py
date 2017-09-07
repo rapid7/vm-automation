@@ -2,7 +2,7 @@
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim, vmodl
 
-from datetime import datetime
+import datetime
 import atexit
 import requests
 from socket import error as SocketError
@@ -107,7 +107,7 @@ class esxiServer:
     def logMsg(self, strMsg):
 		if strMsg == None:
 			strMsg="[None]"
-		dateStamp = 'serverlog:[' + str(datetime.now())+ '] '
+		dateStamp = 'serverlog:[' + str(datetime.datetime.now())+ '] '
 		#DELETE THIS LATER:
 		print dateStamp + strMsg
 		try:
@@ -513,6 +513,18 @@ class esxiVm:
             retVal = False
         return retVal
 
+    def scheduleCmdOnGuest(self, cmdAndArgList, secDelay):
+        # THE POINT HERE IS THAT WHEN VMWARE TOOLS RUNS EXEs, IT DOES SO WITH VERY LIMITED PRIVS
+        # CAUSING SOME PRIV ESC ATTACKS TO FAIL.  SCHEDULING THE PAYLOAD FIXES THAT.  FYI, RUNAS 
+        # DOES NOT
+        schedTime = datetime.datetime.now() + datetime.timedelta(seconds=secDelay)
+        schedTimeStr = str(schedTime.hour) + ":" + str(schedTime.minute)
+        self.server.logMsg("SCEDULE TIME FOR EXECUTION = " + schedTimeStr)
+        schedPrefixStr = r"c:\windows\system32\schtasks.exe /create /tn test4 /ST " + schedTimeStr + " /SC once /tr "
+        schedPrefixList = schedPrefixStr.split()
+        schedPrefixList.append("\"" + ' '.join(cmdAndArgList) + "\"")
+        return self.runCmdOnGuest(schedPrefixList)
+
     def setPassword(self, vmPassword):
         self.vmPassword = vmPassword
 
@@ -583,7 +595,7 @@ class esxiVm:
 
     def uploadAndRun(self, srcFile, dstFile, remoteInterpreter = None):
         """
-        THIS JUST COMBIENS THE UPLOAD AND EXECUTE FUNCTIONS, BUT IF THE VM IS 'NIX, IT ALSO
+        THIS JUST COMBINES THE UPLOAD AND EXECUTE FUNCTIONS, BUT IF THE VM IS 'NIX, IT ALSO
         CHMODS THE FILE SO WE CAN EXECUTE IT
         """
         self.server.logMsg("SOURCE FILE = " + srcFile + "; DESTINATION FILE = " + dstFile)
@@ -600,10 +612,28 @@ class esxiVm:
                 self.server.logMsg("[FATAL ERROR]: FAILED TO RUN " + ' '.join(chmodCmdList) + " ON " + self.devVm)
                 return False
         if not self.runCmdOnGuest(remoteCmd):
-            self.server.logMsg("[FATAL ERROR]: FAILED TO RUN '" + ' '.join(remoteCmd) + "' ON " + self.devVm)
+            self.server.logMsg("[FATAL ERROR]: FAILED TO RUN '" + ' '.join(remoteCmd) + "' ON " + self.vmName)
             return False
         return True
-        
+
+    def uploadAndSchedule(self, srcFile, dstFile, secDelay, remoteInterpreter = None):
+        """
+        THIS JUST COMBINES THE UPLOAD AND SCHEDULE FUNCTIONS
+        """
+        self.server.logMsg("SOURCE FILE = " + srcFile + "; DESTINATION FILE = " + dstFile)
+        if remoteInterpreter!= None:
+            remoteCmd = [remoteInterpreter, dstFile]
+        else:
+            remoteCmd = [dstFile]
+        if not self.uploadFileToGuest(srcFile, dstFile):
+            self.server.logMsg("[FATAL ERROR]: FAILED TO UPLOAD " + srcFile + " TO " + self.vmName)
+            return False
+        if not self.scheduleCmdOnGuest(remoteCmd, secDelay):
+            self.server.logMsg("[FATAL ERROR]: FAILED TO RUN '" + ' '.join(remoteCmd) + "' ON " + self.vmName)
+            return False
+        return True
+
+         
     def uploadFileToGuest(self, srcFile, dstFile):
         """
         uploadFileToGuest UPLOADS A FILE TO A VM
