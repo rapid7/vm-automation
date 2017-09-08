@@ -518,7 +518,10 @@ class esxiVm:
         # CAUSING SOME PRIV ESC ATTACKS TO FAIL.  SCHEDULING THE PAYLOAD FIXES THAT.  FYI, RUNAS 
         # DOES NOT
         schedTime = datetime.datetime.now() + datetime.timedelta(seconds=secDelay)
-        schedTimeStr = str(schedTime.hour) + ":" + str(schedTime.minute)
+        strMinutes = str(schedTime.minute)
+        if len(strMinutes) < 2:
+            strMinutes = '0' + strMinutes
+        schedTimeStr = str(schedTime.hour) + ":" + strMinutes
         self.server.logMsg("SCEDULE TIME FOR EXECUTION = " + schedTimeStr)
         schedPrefixStr = r"c:\windows\system32\schtasks.exe /create /tn test4 /ST " + schedTimeStr + " /SC once /tr "
         schedPrefixList = schedPrefixStr.split()
