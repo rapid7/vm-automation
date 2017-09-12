@@ -1,8 +1,11 @@
 
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim, vmodl
+from string import ascii_lowercase
+from random import choice
 
 import datetime
+import random
 import atexit
 import requests
 from socket import error as SocketError
@@ -517,10 +520,14 @@ class esxiVm:
         # THE POINT HERE IS THAT WHEN VMWARE TOOLS RUNS EXEs, IT DOES SO WITH VERY LIMITED PRIVS
         # CAUSING SOME PRIV ESC ATTACKS TO FAIL.  SCHEDULING THE PAYLOAD FIXES THAT.  FYI, RUNAS 
         # DOES NOT
+        strTaskName = 'VM-' + ''.join(choice(ascii_lowercase) for i in range(12))
         schedTime = datetime.datetime.now() + datetime.timedelta(seconds=secDelay)
-        schedTimeStr = str(schedTime.hour) + ":" + str(schedTime.minute)
+        strMinutes = str(schedTime.minute)
+        if len(strMinutes) < 2:
+            strMinutes = '0' + strMinutes
+        schedTimeStr = str(schedTime.hour) + ":" + strMinutes
         self.server.logMsg("SCEDULE TIME FOR EXECUTION = " + schedTimeStr)
-        schedPrefixStr = r"c:\windows\system32\schtasks.exe /create /tn test4 /ST " + schedTimeStr + " /SC once /tr "
+        schedPrefixStr = r"c:\windows\system32\schtasks.exe /create /tn " + strTaskName + " /ST " + schedTimeStr + " /SC once /tr "
         schedPrefixList = schedPrefixStr.split()
         schedPrefixList.append("\"" + ' '.join(cmdAndArgList) + "\"")
         return self.runCmdOnGuest(schedPrefixList)
