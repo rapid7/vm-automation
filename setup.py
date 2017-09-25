@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vm_automation',
-      version='0.1.2',
+      version='0.1.3',
       description='Virtual infrastructure automation simplified interaction library',
       url='http://github.com/rapid7/vm-automation',
       author='Metasploit Hackers',
@@ -10,6 +10,7 @@ setup(name='vm_automation',
       packages=['vm_automation'],
       install_requires=[
           'pyVmomi',
+          'pyvbox',
       ],
       classifiers=[
             'Development Status :: 4 - Beta',
@@ -22,5 +23,5 @@ setup(name='vm_automation',
             'Programming Language :: Python :: 2.7',
       ],
       platforms=['Windows', 'Linux', 'Solaris', 'Mac OS-X', 'Unix'],
-      keywords='vsphere vmware esx',
+      keywords='vsphere vmware esx virtualbox',
       zip_safe=True)

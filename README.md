@@ -4,7 +4,8 @@ The vm-automation repo was created to simplify interactions with virtual
 machines.  Specifically, this was built to support automated testing by
 simplifying interaction with VMs.  Currently, it supports VMware
 Workstation through the vmrun.exe command-line application and ESXi
-through encapsulation of pyVmomi functions.  My testing has used python
+through encapsulation of pyVmomi functions, as well as VirtualBox through
+encapsulations of pyvbox functions.  My testing has used python
 2.7.
 
 #### Note:
@@ -15,12 +16,13 @@ to support that internal project.
 * Currently, I have logging to the screen turned on to help with
 debugging.  vm-automation logs to a file passed into the intialization
 function for the server.  The default name is `defaultLogfile.log`
+
 ### Why bother to encapsulate pyVmomi and vmrun.exe?
 I'm no big fan of re-inventing the wheel, and I conceed that is a bit of
 what I did here, but I did it for some very good reasons:
 * Using this library allows me to seamlessly manage VMware Workstation
 VMs and VMware ESXi VMs because each server type has a class, and I
-overloaded the management functions to work with both classes.<BR>
+overloaded the management functions to work with both classes.
 * pyVmomi is not particularly simple.  If you do not believe me, see
 the `uploadFileToGuest` function.  It contains the pyVmomi calls to
 upload a file to a guest OS.  It's about 40 lines.  Even worse is the
@@ -37,18 +39,30 @@ testing, but I'm all for adding on to support more projects.
 ### How do I use it?
 * If you don't have python (2.7), crawl out from under the rock and install
 it.
-* Install [pyVmomi](https://pypi.python.org/pypi/pyvmomi) on your machine:
-`pip install --upgrade pyvmomi`
+* VMware Workstation and ESXi
+  * Install [pyVmomi](https://pypi.python.org/pypi/pyvmomi) on your machine:
+  `pip install --upgrade pyvmomi`
+* Oracle VirtualBox
+  * Install the VirtualBox SDK (available from the usual [VirtualBox download page](https://www.virtualbox.org/wiki/Downloads))
+    * there are some [useful guides](http://www.cesareriva.com/how-to-install-the-virtualbox-sdk/) out there to get the SDK ZIP archive installed correctly
+  * Install [pyvbox](https://pypi.python.org/pypi/pyvbox) on your machine:
+  `pip install --upgrade pyvbox`
 * Git this repo:
 `git clone git@github.com:rapid7/vm-automation.git`
 
-### What Hypervisors are supported?
-Right now, just VMware Workstation and ESXi (vSphere).  I was sad to find out that the API calls this repo uses are only available on the paid version of ESXi, but we all gotta' eat, so I can't be too mad.  Hopefully, in the future, we can get support up and running for something like VirtualBox.
+### Which hypervisors are supported?
+The following hypervisors are currently supported:
+
+* VMware Workstation
+* VMware ESXi (vSphere)
+  * *NOTE* the API calls this repo uses are only available on the paid version of ESXi, but we all gotta' eat, so I can't be too mad
+* Oracle VirtualBox
+  * *NOTE* in addition to having VirtualBox installed, you'll need to also install the VirtualBox SDK, see note above
 
 ### How can I get started?
-The fastest way to get started is to instantiate a server (it can be
-either VMware ESXi or Workstation).  I need to add some documentation for Workstation, because I've been focused on ESXi so far.
+The fastest way to get started is to instantiate a server (it can be either VMware ESXi or Workstation).  I need to add some documentation for Workstation, because I've been focused on ESXi so far.
 
+#### ESXi
 ```
 tmoose@ubuntu:~/rapid7/vm-automation$ python
 >>> import vm_automation
@@ -272,8 +286,6 @@ TESTING_BASE
 >>>
 ```
 
-
-
 As a first-use, I implemented this library to support payload testing,
 so the following methods are supported now:
 server class:
@@ -315,6 +327,37 @@ In time, they may get moved:
 * `setTestVm`
 * `takeTempSnapshot`
 
+#### VirtualBox
+```
+>>> import vm_automation
+>>> myserver = vm_automation.virtualboxServer()
+>>> myserver.enumerateVms()
+>>> myserver.vmList
+[<vm_automation.virtualboxVm.virtualboxVm instance at 0x1108417e8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x10f0f1dd0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x10f0f1b00>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x10f0f1e18>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c998>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083cd40>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083cfc8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083ca70>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083ca28>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c5f0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c2d8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c3b0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c908>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c9e0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083cbd8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11085f098>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11085f0e0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11085f170>]
+>>> myserver.vmList[17].vmName
+'kali 2016.2 amd64'
+>>> myserver.vmList[17].isPoweredOn()
+False
+>>> myserver.vmList[17].isPoweredOff()
+True
+>>> myserver.vmList[17].powerOn()
+serverlog:[2017-09-26 10:23:51.720436] POWERING ON kali 2016.2 amd64
+>>> myserver.vmList[17].isPoweredOn()
+False
+>>> myserver.vmList[17].isPoweredOn()
+True
+>>> myserver.vmList[17].isPoweredOn()
+True
+>>> myserver.vmList[17].isPoweredOn()
+True
+>>> myserver.vmList[17].powerOff()
+serverlog:[2017-09-26 10:24:04.007438] POWERING OFF kali 2016.2 amd64
+>>> myserver.vmList[17].isPoweredOn()
+False
+>>> myserver.vmList[17].isPoweredOff()
+True
+```
+
 ### This is kind of cool; how can I help?
 There are several ways to contribute:
 * If there's something you'd like to be able to do with a virtual machine that's not supported, go for it!
@@ -322,5 +365,4 @@ There are several ways to contribute:
 * If you want to add Unit testing to make sure that the functions are supported correctly across classes, you would be doing God's work.
 * If you want to go back and catch the VMware Workstation library up to the ESXi library, that would help a lot, and it would just be making sure function names and return values are the same.
 * If you run through the examples above and one is wrong, correct it for quick contributing karma!
-
 
