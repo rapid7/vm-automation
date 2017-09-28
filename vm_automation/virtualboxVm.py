@@ -4,15 +4,13 @@ import datetime
 class virtualboxServer:
     """
     THE virtualboxServer CLASS IS A CLASS THAT STORES INFORMATION ON AND SIMPLIFIES INTERACTION
-    WITH A VIRTUALBOX SERVER.
+    WITH A VIRTUALBOX INSTANCE.
     """
-    def __init__(self, hostname = "localhost", logFile = "defaultLogfile.log"):
-        self.hostname   = hostname
-        self.type       = "VirtualBox"
+    def __init__(self, logFile = "default.log"):
         self.logFile    = logFile
-        self.fullName   = ""
         self.vm         = virtualbox.VirtualBox()
         self.vmList     = []
+        return None
 
     def enumerateVms(self, negFilter = None):
         for vm in self.vm.machines:
@@ -20,6 +18,10 @@ class virtualboxServer:
                 continue
             else:
                 self.vmList.append(virtualboxVm(self, vm))
+        return True
+
+    def waitForVmsToBoot(self, vmList):
+        raise NotImplementedError
 
     def logMsg(self, strMsg):
                 if strMsg == None:
@@ -44,7 +46,6 @@ class virtualboxVm:
         self.revertSnapshots = []
         self.snapshotList = []
         self.testVm = False
-        #self.vmIdentifier = vmIdentifier
         self.vmIp = ""
         self.vmName = str(self.vmObject.name)
         self.vmOS = self.vmName
@@ -58,6 +59,33 @@ class virtualboxVm:
         else:
             self.arch = None
 
+    def runVmCommand(self, listCmd):
+        raise NotImplementedError
+
+    def runAuthenticatedVmCommand(self, listCmd):
+        raise NotImplementedError
+
+    def deleteSnapshot(self, snapshotName):
+        raise NotImplementedError
+
+    def getArch(self):
+        return self.arch
+
+    def getFileFromGuest(self, srcPathName, dstPathName):
+        raise NotImplementedError
+
+    def getSnapshots(self):
+        raise NotImplementedError
+
+    def getVmIp(self):
+        return self.vmIp
+
+    def getUsername(self):
+        return self.vmUsername
+
+    def isTestVm(self):
+        return self.testVm
+
     def isPoweredOff(self):
         return not self.isPoweredOn()
 
@@ -66,6 +94,9 @@ class virtualboxVm:
             return True
         else:
             return False
+
+    def makeDirOnGuest(self, dirPath):
+        raise NotImplementedError
 
     def powerOn(self, asyncFlag = False):
         if self.isPoweredOn():
@@ -90,3 +121,39 @@ class virtualboxVm:
                 self.vmSession.unlock_machine()
                 self.vmSession = None
             return
+
+    def prepVm(self):
+        raise NotImplementedError
+
+    def queryVmIp(self):
+        raise NotImplementedError
+
+    def revertToSnapshot(self, snapshot):
+        raise NotImplementedError
+
+    def revertDevVm(self):
+        raise NotImplementedError
+
+    def revertToTestingBase(self):
+        raise NotImplementedError
+
+    def runCmdOnGuest(self, argList):
+        return False
+
+    def setPassword(self, vmPassword):
+        self.vmPassword = vmPassword
+
+    def setTestVm(self):
+        self.testVm = True
+
+    def setUsername(self, vmUsername):
+        self.vmUsername = vmUsername
+
+    def takeTempSnapshot(self):
+        raise NotImplementedError
+
+    def updateProcList(self):
+        raise NotImplementedError
+
+    def uploadFileToGuest(self, srcPathName, dstPathName):
+        raise NotImplementedError

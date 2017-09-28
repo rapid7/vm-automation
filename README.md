@@ -334,6 +334,27 @@ In time, they may get moved:
 >>> myserver.enumerateVms()
 >>> myserver.vmList
 [<vm_automation.virtualboxVm.virtualboxVm instance at 0x1108417e8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x10f0f1dd0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x10f0f1b00>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x10f0f1e18>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c998>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083cd40>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083cfc8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083ca70>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083ca28>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c5f0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c2d8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c3b0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c908>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083c9e0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11083cbd8>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11085f098>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11085f0e0>, <vm_automation.virtualboxVm.virtualboxVm instance at 0x11085f170>]
+>>> for vm in myserver.vmList:
+...   print(vm.vmName)
+...
+Ubuntu 16.04 amd64
+Windows 8.1 x86_64
+Windows 7 Ultimate N SP1 (x86_64)
+Windows XP Pro SP3 (x86)
+Ubuntu 16.04 amd64 2
+Ubuntu 16.04 amd64 3
+Windows 7 Ultimate (x86)
+Windows 2008 x64 SP1
+Windows Server 2012 x64
+Windows 10 Enterprise (x64)
+Ubuntu 14.04 Desktop (amd64)
+Ubuntu 16.04 amd64
+Ubuntu 14.04 amd64 2
+Ubuntu 14.04 amd64 3
+Windows Server 2003
+Windows Server 2003 2
+Windows 7 Professional x64
+kali 2016.2 amd64
 >>> myserver.vmList[17].vmName
 'kali 2016.2 amd64'
 >>> myserver.vmList[17].isPoweredOn()
