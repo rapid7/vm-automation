@@ -371,6 +371,12 @@ True
 True
 >>> myserver.vmList[17].isPoweredOn()
 True
+>>> myserver.vmList[17].vmUsername = "root"
+>>> myserver.vmList[17].vmPassword = "toor"
+>>> sout, serr = myserver.vmList[17].runAuthenticatedVmCommand(["/bin/uname", "-a"])
+>>> print sout
+Linux kali-pbarry 4.12.0-kali2-amd64 #1 SMP Debian 4.12.13-1kali2 (2017-10-03) x86_64 GNU/Linux
+
 >>> myserver.vmList[17].powerOff()
 serverlog:[2017-09-26 10:24:04.007438] POWERING OFF kali 2016.2 amd64
 >>> myserver.vmList[17].isPoweredOn()

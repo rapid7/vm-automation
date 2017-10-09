@@ -38,10 +38,16 @@ class virtualboxServer:
                 return True
 
 class virtualboxVm:
+    """
+    THE virtualboxVm CLASS IS A CLASS THAT STORES INFORMATION ON AND SIMPLIFIES INTERACTION
+    WITH A VIRTUALBOX VM.
+    """
     def __init__(self, serverObject, vmObject):
         self.server = serverObject
         self.vmObject = vmObject
         self.vmSession = None
+        self.vmSessionGuest = None
+        self.vmSessionGuestConsole = None
         self.procList = []
         self.revertSnapshots = []
         self.snapshotList = []
@@ -63,7 +69,15 @@ class virtualboxVm:
         raise NotImplementedError
 
     def runAuthenticatedVmCommand(self, listCmd):
-        raise NotImplementedError
+        if not self.vmSessionGuest:
+            self.vmSessionGuest = self.vmObject.create_session()
+        if self.vmSessionGuest:
+            if not self.vmSessionGuestConsole:
+              self.vmSessionGuestConsole = self.vmSessionGuest.console.guest.create_session(self.vmUsername, self.vmPassword)
+            if self.vmSessionGuestConsole:
+              process, stdout, stderr = self.vmSessionGuestConsole.execute(listCmd[0], listCmd[1:])
+              return stdout, stderr
+        return False
 
     def deleteSnapshot(self, snapshotName):
         raise NotImplementedError
@@ -119,6 +133,8 @@ class virtualboxVm:
             if self.vmSession:
                 self.vmSession.console.power_down()
                 self.vmSession.unlock_machine()
+                self.vmSessionGuestConsole = None
+                self.vmSessionGuest = None
                 self.vmSession = None
             return
 
@@ -138,6 +154,9 @@ class virtualboxVm:
         raise NotImplementedError
 
     def runCmdOnGuest(self, argList):
+        cmdRet = self.runAuthenticatedVmCommand(argList)
+        if cmdRet == ('', ''):
+            return True
         return False
 
     def setPassword(self, vmPassword):
