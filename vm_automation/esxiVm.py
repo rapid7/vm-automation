@@ -522,11 +522,16 @@ class esxiVm:
         # DOES NOT
         strTaskName = 'VM-' + ''.join(choice(ascii_lowercase) for i in range(12))
         schedTime = datetime.datetime.now() + datetime.timedelta(seconds=secDelay)
+        currentTime = datetime.datetime.now()
+        self.server.logMsg("CURRENT TIME = " + str(currentTime.hour) + ':' + str(currentTime.minute))
+        strHours = str(schedTime.hour)
+        if len(strHours) < 2:
+            strHours = '0' + strHours
         strMinutes = str(schedTime.minute)
         if len(strMinutes) < 2:
             strMinutes = '0' + strMinutes
-        schedTimeStr = str(schedTime.hour) + ":" + strMinutes
-        self.server.logMsg("SCEDULE TIME FOR EXECUTION = " + schedTimeStr)
+        schedTimeStr = strHours + ":" + strMinutes
+        self.server.logMsg("SCHEDULE TIME FOR EXECUTION = " + schedTimeStr)
         schedPrefixStr = r"c:\windows\system32\schtasks.exe /create /tn " + strTaskName + " /ST " + schedTimeStr + " /SC once /tr "
         schedPrefixList = schedPrefixStr.split()
         schedPrefixList.append("\"" + ' '.join(cmdAndArgList) + "\"")
