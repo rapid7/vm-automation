@@ -469,7 +469,7 @@ class esxiVm:
         self.server.logMsg("RESETTING VM " + self.vmName)
         self.getSnapshots()
         for snapshotObject in self.snapshotList:
-            if snapshotName.lower() in snapshotObject[0].name.lower():
+            if snapshotName.strip() == snapshotObject[0].name.strip():
                 self.server.logMsg("REVERTING VM TO " + snapshotObject[0].name)
                 return self.revertToSnapshot(snapshotObject[0].snapshot)
         return None
