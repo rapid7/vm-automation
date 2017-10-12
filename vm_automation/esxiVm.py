@@ -465,11 +465,11 @@ class esxiVm:
     def revertToSnapshot(self, snapshotObj):
         return self.waitForTask(snapshotObj.RevertToSnapshot_Task())
 
-    def revertToSnapshotByName(self, snapshotObj):
+    def revertToSnapshotByName(self, snapshotName):
         self.server.logMsg("RESETTING VM " + self.vmName)
         self.getSnapshots()
         for snapshotObject in self.snapshotList:
-            if 'testing_base' in snapshotObject[0].name.lower():
+            if snapshotName.strip() == snapshotObject[0].name.strip():
                 self.server.logMsg("REVERTING VM TO " + snapshotObject[0].name)
                 return self.revertToSnapshot(snapshotObject[0].snapshot)
         return None
