@@ -17,7 +17,7 @@ class workstationServer:
             self.vmrunExe =     configDictionary['VMRUN_PATH']
             self.vmPath =       configDictionary['VM_PATH']
         except ValueError as e:
-            print "CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e)
+            print("CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e))
             return None
         self.vmList = []
         return None
