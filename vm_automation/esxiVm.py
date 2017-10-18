@@ -8,6 +8,8 @@ import datetime
 import random
 import atexit
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from socket import error as SocketError
 import ssl
 import time
@@ -42,7 +44,7 @@ class esxiServer:
             password = configDictionary['HYPERVISOR_PASSWORD']
             port = configDictionary['HYPERVISOR_LISTENING_PORT']
         except KeyError as e:
-            print "CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e)
+            print("CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e))
             return None
         return esxiServer(hostname, username, password, port, logFile)
 
@@ -57,12 +59,12 @@ class esxiServer:
             configStr = fileObj.read()
             fileObj.close()
         except IOError as e:
-            print "UNABLE TO OPEN FILE: " + str(configFile) + '\n' + str(e)
+            print("UNABLE TO OPEN FILE: " + str(configFile) + '\n' + str(e))
             return None
         try:
             hypervisorDic = json.loads(configStr)
         except Exception as e:
-            print "UNABLE TO PARSE FILE: " + str(configFile) + '\n' + str(e)
+            print("UNABLE TO PARSE FILE: " + str(configFile) + '\n' + str(e))
             return None
         return esxiServer.createFromConfig(hypervisorDic, logFile)
 
@@ -108,18 +110,17 @@ class esxiServer:
         return retVal
 
     def logMsg(self, strMsg):
-		if strMsg == None:
-			strMsg="[None]"
-		dateStamp = 'serverlog:[' + str(datetime.datetime.now())+ '] '
-		#DELETE THIS LATER:
-		print dateStamp + strMsg
-		try:
-			logFileObj = open(self.logFile, 'ab')
-			logFileObj.write(dateStamp + strMsg + '\n')
-			logFileObj.close()
-		except IOError:
-			return False
-		return True
+        if strMsg == None:
+            strMsg="[None]"
+        dateStamp = 'serverlog:[' + str(datetime.datetime.now())+ '] '
+        try:
+            logFileObj = open(self.logFile, 'a')
+            logFileObj.write(dateStamp + strMsg + '\n')
+            logFileObj.close()
+        except IOError:
+            return False
+        return True
+    
     def getObject(self, thingToGet):
         """
         OBJECTS YOU CAN GET:
@@ -283,9 +284,7 @@ class esxiVm:
         for child in content.rootFolder.childEntity:
            if hasattr(child, 'vmFolder'):
               datacenter = child
-              print child.name
               vmFolder = datacenter.vmFolder
-              print vmFolder
               vmList = vmFolder.childEntity
               if self.vmObject in vmList:
                  return child
@@ -315,7 +314,6 @@ class esxiVm:
                                           srcFile + " FROM " +\
                                           self.vmName + " HTTP CODE " + \
                                           str(resp.status_code))
-                        retVal = True
                     else:
                         getFile = open(dstFile, 'wb')
                         getFile.write(resp.content)
@@ -324,13 +322,13 @@ class esxiVm:
                                           " AS " + dstFile + \
                                           " HTTP RESPONSE WAS " + str(resp.status_code))
                         retVal=True
-                except Exception as e:
-                    self.server.logMsg(str(e))
+                except vim.fault.FileNotFound as e:
+                    self.server.logMsg("FAILED TO FIND FILE ON VM: " + srcFile)
+                    self.server.logMsg("SYSTEM ERROR: " + str(e))
                     pass
-                #SOMETIMES THE VM GETS SQUIRRLEY; IF SO, JUST TRY AGAIN
                 except Exception as e:
                     self.server.logMsg("UNPREDICTED EXCEPTION:\n" + str(e))
-                    continue
+                    pass
             else:
                 self.server.logMsg("THERE IS A PROBLEM WITH THE VMWARE TOOLS ON " + self.vmName)
             return retVal
@@ -659,7 +657,7 @@ class esxiVm:
             content = self.server.connection.RetrieveContent()
             self.server.logMsg("TOOLS CHECKS OUT")
             try:
-                srcFileObj = open(srcFile, 'rb')
+                srcFileObj = open(srcFile, 'r')
                 fileContent = srcFileObj.read()
                 srcFileObj.close()
             except IOError:
