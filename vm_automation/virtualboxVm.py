@@ -13,6 +13,7 @@ class virtualboxServer:
         return None
 
     def enumerateVms(self, negFilter = None):
+        del self.vmList[:]
         for vm in self.vm.machines:
             if negFilter != None and negFilter.upper() in vm:
                 continue
