@@ -1,19 +1,18 @@
-
+from atexit import register
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim, vmodl
-from string import ascii_lowercase
 from random import choice
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from socket import error as SocketError
+from string import ascii_lowercase
 
 import datetime
-import random
-import atexit
+import json
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-from socket import error as SocketError
 import ssl
 import time
-import json
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class esxiServer:
     """
@@ -106,7 +105,7 @@ class esxiServer:
                     retVal = False
                 else:
                     retVal = True
-            atexit.register(Disconnect, self.connection)
+            register(Disconnect, self.connection)
         return retVal
 
     def logMsg(self, strMsg):
