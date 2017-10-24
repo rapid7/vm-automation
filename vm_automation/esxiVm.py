@@ -149,8 +149,11 @@ class esxiServer:
                     time.sleep(1)
                     self.logMsg(i.vmName + " DID NOT POWER ON AS EXPECTED; RETRYING")
                     i.powerOn(True)
-                if i.checkTools(True) == False:
+                toolsStatus = i.checkTools(True)
+                if toolsStatus == 'TOOLS_NOT_READY':
                     vmsReady = False
+                else:
+                    vmsReady = True
             time.sleep(1)
         retVal = True
         self.logMsg("VMS APPEAR TO BE READY; PULLING IP ADDRESSES TO VERIFY")
@@ -222,29 +225,25 @@ class esxiVm:
 
     def checkTools(self, waitForTools = True):
         """
-        THERE HAS TO BE A BETTER WAY TO DO THIS....
-        WHEN I WROTE IT, THERE WERE ONLY 2 POSSIBLE VALUES, ON AND NOT ON YET...
-        THERE ARE A FEW OPTIONS I FOUND LATER THAT ARE THE EQUIVALENT OF "NEVER COMING ON, YOU BETTER QUIT"
-            DIFFICULT TO EXIT FROM WITHIN A FUNCTION, AND RETURNING False MEANS "WAIT"
-            PROBABLY NEED TO TRUNCATE THIS TO
-                CHECKING FOR STATE,
-                ENCAPSULATE WITH try/except
-                RETURN STRING OR FLAG FOR "READY" "NOT READY" "FAULT"
+        I WISH THIS COULD BE BINARY, BUT IT NEEDS THREE VALUES...
+        TOOLS_NOT_READY:     VMWARE_TOOLS IS NOT READY, BUT MAY BECOME READY (THE CALLER SHOULD KEEP TRYING)
+        TOOLS_READY:         VMWARE_TOOLS IS READY
+        TOOLS_NOT_INSTALLED: VMWARE TOOLS IS NOT READY AND NEVER WILL BE
         """
         tools_status = self.vmObject.guest.toolsStatus
         if tools_status == 'toolsNotRunning':
-            retVal = False
+            retVal = 'TOOLS_NOT_READY'
         elif tools_status == 'toolsOld':
             self.server.logMsg("YOU SHOULD UPGRADE THE VMWARE TOOLS ON " + self.vmName)
-            retVal = True
+            retVal = 'TOOLS_READY'
         elif tools_status == 'toolsNotInstalled':
             self.server.logMsg("YOU SHOULD INSTALL VMWARE TOOLS ON " + self.vmName)
-            retVal = False
+            retVal = 'TOOLS_NOT_INSTALLED'
         elif tools_status == 'toolsOk':
-            retVal = True
+            retVal = 'TOOLS_READY'
         else:
             self.server.logMsg("UNKNOWN STATE OF VMWARE TOOLS ON " + self.vmName + "::" +tools_status)
-            retVal = False
+            retVal = 'TOOLS_NOT_READY'
         return retVal
 
     def deleteSnapshot(self, snapshotName):
@@ -292,7 +291,7 @@ class esxiVm:
         for i in range(3):
             self.server.logMsg("ATTEMPTING TO GET " +srcFile)
             retVal = False
-            if self.checkTools():
+            if self.checkTools() == 'TOOLS_READY':
                 creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername,
                                                                 password=self.vmPassword)
                 content = self.server.connection.RetrieveContent()
@@ -349,15 +348,16 @@ class esxiVm:
         TOOLS FINISHES LOADING AND BEFORE NETWORKING SERVICES START
         THIS WILL TRY TO GET THE IP ADDRESS FOR 2 MINUTES
         """
-        ipAttempts = 120
-        for i in range(ipAttempts):
-            self.vmIp = self.vmObject.summary.guest.ipAddress
-            if self.vmIp != None:
-                break
-            else:
-                strAttempt = "(ATTEMPT " + str(i) + " OF " + str(ipAttempts) + ")"
-                self.server.logMsg(strAttempt + " FAILED TO GET IP ADDRESS FROM " + self.vmName)
-                time.sleep(1)
+        if self.checkTools(True) != 'TOOLS_NOT_INSTALLED':
+            ipAttempts = 120
+            for i in range(ipAttempts):
+                self.vmIp = self.vmObject.summary.guest.ipAddress
+                if self.vmIp != None:
+                    break
+                else:
+                    strAttempt = "(ATTEMPT " + str(i) + " OF " + str(ipAttempts) + ")"
+                    self.server.logMsg(strAttempt + " FAILED TO GET IP ADDRESS FROM " + self.vmName)
+                    time.sleep(1)
         return self.vmIp
 
     def getUsername(self):
@@ -378,7 +378,7 @@ class esxiVm:
     def makeDirOnGuest(self, dirPath):
         self.server.logMsg("CREATING " + dirPath + " ON " + self.vmName + " ")
         retVal = True
-        if self.checkTools():
+        if self.checkTools() == 'TOOLS_READY':
             creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername,
                                                                       password=self.vmPassword)
             content = self.server.connection.RetrieveContent()
@@ -481,7 +481,7 @@ class esxiVm:
 
     def runCmdOnGuest(self, cmdAndArgList):
         self.server.logMsg("RUNNING '" + ' '.join(cmdAndArgList) + "' ON " + self.vmName)
-        if self.checkTools():
+        if self.checkTools() == 'TOOLS_READY':
             try:
                 creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername,
                                                                 password=self.vmPassword)
@@ -650,7 +650,7 @@ class esxiVm:
         self.server.logMsg("ATTEMPTING TO UPLOAD " +srcFile + " TO " + dstFile + " ON " + self.vmName)
         self.server.logMsg("USING " + self.vmUsername + " PW " + self.vmPassword + " ON " + self.vmName)
         retVal = False
-        if self.checkTools():
+        if self.checkTools() == 'TOOLS_READY':
             creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername, 
                                                             password=self.vmPassword)
             content = self.server.connection.RetrieveContent()
