@@ -1,17 +1,18 @@
-
+from atexit import register
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim, vmodl
-from string import ascii_lowercase
 from random import choice
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from socket import error as SocketError
+from string import ascii_lowercase
 
 import datetime
-import random
-import atexit
+import json
 import requests
-from socket import error as SocketError
 import ssl
 import time
-import json
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class esxiServer:
     """
@@ -41,8 +42,7 @@ class esxiServer:
             username = configDictionary['HYPERVISOR_USERNAME']
             password = configDictionary['HYPERVISOR_PASSWORD']
             port = configDictionary['HYPERVISOR_LISTENING_PORT']
-        except KeyError as e:
-            print "CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e)
+        except:
             return None
         return esxiServer(hostname, username, password, port, logFile)
 
@@ -56,13 +56,11 @@ class esxiServer:
             fileObj = open(configFile, 'r')
             configStr = fileObj.read()
             fileObj.close()
-        except IOError as e:
-            print "UNABLE TO OPEN FILE: " + str(configFile) + '\n' + str(e)
+        except:
             return None
         try:
             hypervisorDic = json.loads(configStr)
-        except Exception as e:
-            print "UNABLE TO PARSE FILE: " + str(configFile) + '\n' + str(e)
+        except:
             return None
         return esxiServer.createFromConfig(hypervisorDic, logFile)
 
@@ -104,22 +102,21 @@ class esxiServer:
                     retVal = False
                 else:
                     retVal = True
-            atexit.register(Disconnect, self.connection)
+            register(Disconnect, self.connection)
         return retVal
 
     def logMsg(self, strMsg):
-		if strMsg == None:
-			strMsg="[None]"
-		dateStamp = 'serverlog:[' + str(datetime.datetime.now())+ '] '
-		#DELETE THIS LATER:
-		print dateStamp + strMsg
-		try:
-			logFileObj = open(self.logFile, 'ab')
-			logFileObj.write(dateStamp + strMsg + '\n')
-			logFileObj.close()
-		except IOError:
-			return False
-		return True
+        if strMsg == None:
+            strMsg="[None]"
+        dateStamp = 'serverlog:[' + str(datetime.datetime.now())+ '] '
+        try:
+            logFileObj = open(self.logFile, 'a')
+            logFileObj.write(dateStamp + strMsg + '\n')
+            logFileObj.close()
+        except IOError:
+            return False
+        return True
+    
     def getObject(self, thingToGet):
         """
         OBJECTS YOU CAN GET:
@@ -149,8 +146,11 @@ class esxiServer:
                     time.sleep(1)
                     self.logMsg(i.vmName + " DID NOT POWER ON AS EXPECTED; RETRYING")
                     i.powerOn(True)
-                if i.checkTools(True) == False:
+                toolsStatus = i.checkTools(True)
+                if toolsStatus == 'TOOLS_NOT_READY':
                     vmsReady = False
+                else:
+                    vmsReady = True
             time.sleep(1)
         retVal = True
         self.logMsg("VMS APPEAR TO BE READY; PULLING IP ADDRESSES TO VERIFY")
@@ -222,29 +222,25 @@ class esxiVm:
 
     def checkTools(self, waitForTools = True):
         """
-        THERE HAS TO BE A BETTER WAY TO DO THIS....
-        WHEN I WROTE IT, THERE WERE ONLY 2 POSSIBLE VALUES, ON AND NOT ON YET...
-        THERE ARE A FEW OPTIONS I FOUND LATER THAT ARE THE EQUIVALENT OF "NEVER COMING ON, YOU BETTER QUIT"
-            DIFFICULT TO EXIT FROM WITHIN A FUNCTION, AND RETURNING False MEANS "WAIT"
-            PROBABLY NEED TO TRUNCATE THIS TO
-                CHECKING FOR STATE,
-                ENCAPSULATE WITH try/except
-                RETURN STRING OR FLAG FOR "READY" "NOT READY" "FAULT"
+        I WISH THIS COULD BE BINARY, BUT IT NEEDS THREE VALUES...
+        TOOLS_NOT_READY:     VMWARE_TOOLS IS NOT READY, BUT MAY BECOME READY (THE CALLER SHOULD KEEP TRYING)
+        TOOLS_READY:         VMWARE_TOOLS IS READY
+        TOOLS_NOT_INSTALLED: VMWARE TOOLS IS NOT READY AND NEVER WILL BE
         """
         tools_status = self.vmObject.guest.toolsStatus
         if tools_status == 'toolsNotRunning':
-            retVal = False
+            retVal = 'TOOLS_NOT_READY'
         elif tools_status == 'toolsOld':
             self.server.logMsg("YOU SHOULD UPGRADE THE VMWARE TOOLS ON " + self.vmName)
-            retVal = True
+            retVal = 'TOOLS_READY'
         elif tools_status == 'toolsNotInstalled':
             self.server.logMsg("YOU SHOULD INSTALL VMWARE TOOLS ON " + self.vmName)
-            retVal = False
+            retVal = 'TOOLS_NOT_INSTALLED'
         elif tools_status == 'toolsOk':
-            retVal = True
+            retVal = 'TOOLS_READY'
         else:
             self.server.logMsg("UNKNOWN STATE OF VMWARE TOOLS ON " + self.vmName + "::" +tools_status)
-            retVal = False
+            retVal = 'TOOLS_NOT_READY'
         return retVal
 
     def deleteSnapshot(self, snapshotName):
@@ -283,9 +279,7 @@ class esxiVm:
         for child in content.rootFolder.childEntity:
            if hasattr(child, 'vmFolder'):
               datacenter = child
-              print child.name
               vmFolder = datacenter.vmFolder
-              print vmFolder
               vmList = vmFolder.childEntity
               if self.vmObject in vmList:
                  return child
@@ -294,7 +288,7 @@ class esxiVm:
         for i in range(3):
             self.server.logMsg("ATTEMPTING TO GET " +srcFile)
             retVal = False
-            if self.checkTools():
+            if self.checkTools() == 'TOOLS_READY':
                 creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername,
                                                                 password=self.vmPassword)
                 content = self.server.connection.RetrieveContent()
@@ -315,7 +309,6 @@ class esxiVm:
                                           srcFile + " FROM " +\
                                           self.vmName + " HTTP CODE " + \
                                           str(resp.status_code))
-                        retVal = True
                     else:
                         getFile = open(dstFile, 'wb')
                         getFile.write(resp.content)
@@ -324,13 +317,13 @@ class esxiVm:
                                           " AS " + dstFile + \
                                           " HTTP RESPONSE WAS " + str(resp.status_code))
                         retVal=True
-                except Exception as e:
-                    self.server.logMsg(str(e))
+                except vim.fault.FileNotFound as e:
+                    self.server.logMsg("FAILED TO FIND FILE ON VM: " + srcFile)
+                    self.server.logMsg("SYSTEM ERROR: " + str(e))
                     pass
-                #SOMETIMES THE VM GETS SQUIRRLEY; IF SO, JUST TRY AGAIN
                 except Exception as e:
                     self.server.logMsg("UNPREDICTED EXCEPTION:\n" + str(e))
-                    continue
+                    pass
             else:
                 self.server.logMsg("THERE IS A PROBLEM WITH THE VMWARE TOOLS ON " + self.vmName)
             return retVal
@@ -352,15 +345,16 @@ class esxiVm:
         TOOLS FINISHES LOADING AND BEFORE NETWORKING SERVICES START
         THIS WILL TRY TO GET THE IP ADDRESS FOR 2 MINUTES
         """
-        ipAttempts = 120
-        for i in range(ipAttempts):
-            self.vmIp = self.vmObject.summary.guest.ipAddress
-            if self.vmIp != None:
-                break
-            else:
-                strAttempt = "(ATTEMPT " + str(i) + " OF " + str(ipAttempts) + ")"
-                self.server.logMsg(strAttempt + " FAILED TO GET IP ADDRESS FROM " + self.vmName)
-                time.sleep(1)
+        if self.checkTools(True) != 'TOOLS_NOT_INSTALLED':
+            ipAttempts = 120
+            for i in range(ipAttempts):
+                self.vmIp = self.vmObject.summary.guest.ipAddress
+                if self.vmIp != None:
+                    break
+                else:
+                    strAttempt = "(ATTEMPT " + str(i) + " OF " + str(ipAttempts) + ")"
+                    self.server.logMsg(strAttempt + " FAILED TO GET IP ADDRESS FROM " + self.vmName)
+                    time.sleep(1)
         return self.vmIp
 
     def getUsername(self):
@@ -381,7 +375,7 @@ class esxiVm:
     def makeDirOnGuest(self, dirPath):
         self.server.logMsg("CREATING " + dirPath + " ON " + self.vmName + " ")
         retVal = True
-        if self.checkTools():
+        if self.checkTools() == 'TOOLS_READY':
             creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername,
                                                                       password=self.vmPassword)
             content = self.server.connection.RetrieveContent()
@@ -484,7 +478,7 @@ class esxiVm:
 
     def runCmdOnGuest(self, cmdAndArgList):
         self.server.logMsg("RUNNING '" + ' '.join(cmdAndArgList) + "' ON " + self.vmName)
-        if self.checkTools():
+        if self.checkTools() == 'TOOLS_READY':
             try:
                 creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername,
                                                                 password=self.vmPassword)
@@ -653,13 +647,13 @@ class esxiVm:
         self.server.logMsg("ATTEMPTING TO UPLOAD " +srcFile + " TO " + dstFile + " ON " + self.vmName)
         self.server.logMsg("USING " + self.vmUsername + " PW " + self.vmPassword + " ON " + self.vmName)
         retVal = False
-        if self.checkTools():
+        if self.checkTools() == 'TOOLS_READY':
             creds = vim.vm.guest.NamePasswordAuthentication(username=self.vmUsername, 
                                                             password=self.vmPassword)
             content = self.server.connection.RetrieveContent()
             self.server.logMsg("TOOLS CHECKS OUT")
             try:
-                srcFileObj = open(srcFile, 'rb')
+                srcFileObj = open(srcFile, 'r')
                 fileContent = srcFileObj.read()
                 srcFileObj.close()
             except IOError:
