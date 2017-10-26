@@ -42,8 +42,7 @@ class esxiServer:
             username = configDictionary['HYPERVISOR_USERNAME']
             password = configDictionary['HYPERVISOR_PASSWORD']
             port = configDictionary['HYPERVISOR_LISTENING_PORT']
-        except KeyError as e:
-            print("CONFIG FILE DID NOT CONTAIN ALL REQUIRED DATA: " + str(e))
+        except:
             return None
         return esxiServer(hostname, username, password, port, logFile)
 
@@ -57,13 +56,11 @@ class esxiServer:
             fileObj = open(configFile, 'r')
             configStr = fileObj.read()
             fileObj.close()
-        except IOError as e:
-            print("UNABLE TO OPEN FILE: " + str(configFile) + '\n' + str(e))
+        except:
             return None
         try:
             hypervisorDic = json.loads(configStr)
-        except Exception as e:
-            print("UNABLE TO PARSE FILE: " + str(configFile) + '\n' + str(e))
+        except:
             return None
         return esxiServer.createFromConfig(hypervisorDic, logFile)
 
