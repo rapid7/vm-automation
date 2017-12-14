@@ -10,7 +10,7 @@ def get_vm_server(config_file):
         with open(config_file) as config_file_handle:
             config_map = json.load(config_file_handle)
             if config_map['HYPERVISOR_TYPE'].lower() == "esxi":
-                vmServer = vm_automation.esxiServer.createFromConfig(config_map, 'esxi_autoamtion.log')
+                vmServer = vm_automation.esxiServer.createFromConfig(config_map, 'esxi_automation.log')
                 vmServer.connect()
             if config_map['HYPERVISOR_TYPE'].lower() == "workstation":
                 vmServer = vm_automation.workstationServer(config_map, 'workstation_automation.log')
