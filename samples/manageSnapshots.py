@@ -25,7 +25,6 @@ def main():
     parser.add_argument("-k", "--keyword", help="VM search parameter")
     parser.add_argument("-sn", "--snapshotName", help="snapshot name")
     parser.add_argument("-a", "--action", help="action [create|revert|delete]")
-    parser.add_argument("-hf", "--hypervisorConfig", help="hypervisor config file")
     parser.add_argument("-p1", "--powerOn", help="power on vm before snapshot", action="store_true")
     parser.add_argument("-p0", "--powerOff", help="power off vm before snapshot", action="store_true")
     parser.add_argument("hypervisorConfig", help="json hypervisor config")
