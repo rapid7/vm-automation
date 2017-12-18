@@ -3,4 +3,5 @@
 /dist/
 /*.egg-info
 /.idea
+/*.log
 /samples/*.log

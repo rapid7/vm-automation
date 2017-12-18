@@ -431,7 +431,7 @@ class esxiVm:
         else:
             self.server.logMsg("POWERING OFF " + self.vmName)
             if asyncFlag:
-                return self.vmObject.PowerOnVM_Task()
+                return self.vmObject.PowerOffVM_Task()
             else:
                 return self.waitForTask(self.vmObject.PowerOffVM_Task())
 

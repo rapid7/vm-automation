@@ -5,6 +5,7 @@ from tqdm import tqdm
 from pyVmomi import vim
 import vm_automation
 
+
 def get_vm_server(config_file):
     if os.path.isfile(config_file):
         with open(config_file) as config_file_handle:
@@ -16,6 +17,7 @@ def get_vm_server(config_file):
                 vmServer = vm_automation.workstationServer(config_map, 'workstation_automation.log')
         return vmServer
     return None
+
 
 def set_network(vm_server, vm, target_network):
     nic = None
