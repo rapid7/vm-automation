@@ -222,33 +222,37 @@ class esxiVm:
 
     def waitForVmToBoot(self):
         # IS IT TURNED ON?
-        retVal = True
         for i in range(10):
             if self.isPoweredOn() == False:
                 time.sleep(1)
                 self.server.logMsg(self.vmName + " WAS NOT POWERED ON AS EXPECTED; RETRYING")
                 self.powerOn(True)
-                sleep(5)
+                time.sleep(5)
         # IS THE TOOLS SERVICE RUNNING?
         if self.isPoweredOn() == False:
+            self.server.logMsg(self.vmName + " IS POWERED OFF")
             return False
         else:
-            attempts = 300
+            attempts = 60
+            tools_ready = False
             for i in range(attempts):
                 if self.checkTools(True) != 'TOOLS_NOT_READY':
+                    tools_ready = True
                     break
-            if i == attempts-1:
-                return False
+                time.sleep(5)
+                # No tools available return as result.
+            if not tools_ready:
+                return tools_ready
         # CAN WE PULL AN IP ADDRESS?
         for j in range(5):
             ipAddress = self.getVmIp()
             if ipAddress != None:
                 break;
             else:
-                self.server.logMsg("IP ADDRESS LOOKUP FAILED FOR " + self.vmName + " = " + str(ipAddress))
+                self.server.logMsg("IP ADDRESS LOOKUP FAILED FOR " + self.vmName)
             time.sleep(1)
         if ipAddress == None:
-            self.server.logMsg(i.vmName + " FAILED TO INITIALIZE")
+            self.server.logMsg(self.vmName + " FAILED TO INITIALIZE")
             return False
         else:
             self.server.logMsg("IP ADDRESS FOR " + self.vmName + " = " + ipAddress)
