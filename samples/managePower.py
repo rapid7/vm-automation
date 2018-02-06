@@ -10,7 +10,6 @@ def main():
     
     args = parser.parse_args()
 
-    hypervisorDic = {}
     vmServer = vm_automation.esxiServer.createFromFile(args.hypervisorConfig, './power.log')
     if vmServer != None:
         vmServer.enumerateVms()
@@ -19,7 +18,10 @@ def main():
                 if args.powerOn:
                     vm.powerOn()
                 if args.powerOff:
-                    vm.powerOff()
+                    if vm.checkTools() == 'TOOLS_READY' and vm.isPoweredOn():
+                        vm.vmObject.ShutdownGuest()
+                    else:
+                        vm.powerOff()
     
 if __name__ == "__main__":
     main()
