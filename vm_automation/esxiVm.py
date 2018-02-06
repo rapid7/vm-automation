@@ -242,6 +242,7 @@ class esxiVm:
                 time.sleep(5)
                 # No tools available return as result.
             if not tools_ready:
+                self.server.logMsg(self.vmName + " IS POWERED ON TOOLS WERE NOT READY IN TIME")
                 return tools_ready
         # CAN WE PULL AN IP ADDRESS?
         for j in range(5):
