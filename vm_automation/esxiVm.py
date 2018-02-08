@@ -401,9 +401,8 @@ class esxiVm:
     def getUsername(self):
         return self.vmUsername
 
-    def getPassword(self):^M
+    def getPassword(self):
         return self.vmPassword^M
-
 
     def isTestVm(self):
         return self.testVm
