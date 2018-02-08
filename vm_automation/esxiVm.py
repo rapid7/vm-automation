@@ -401,6 +401,10 @@ class esxiVm:
     def getUsername(self):
         return self.vmUsername
 
+    def getPassword(self):^M
+        return self.vmPassword^M
+
+
     def isTestVm(self):
         return self.testVm
 
@@ -640,16 +644,18 @@ class esxiVm:
                 retVal = True
         return retVal
 
-    def uploadAndRun(self, srcFile, dstFile, remoteInterpreter = None):
+    def uploadAndRun(self, srcFile, dstFile, remoteInterpreter = None, useCmdShell = False):
         """
         THIS JUST COMBINES THE UPLOAD AND EXECUTE FUNCTIONS, BUT IF THE VM IS 'NIX, IT ALSO
         CHMODS THE FILE SO WE CAN EXECUTE IT
         """
         self.server.logMsg("SOURCE FILE = " + srcFile + "; DESTINATION FILE = " + dstFile)
+        remoteCmd = []
+        if useCmdShell == True:
+            remoteCmd.extend(['cmd.exe', '/k'])
         if remoteInterpreter!= None:
-            remoteCmd = [remoteInterpreter, dstFile]
-        else:
-            remoteCmd = [dstFile]
+            remoteCmd.append(remoteInterpreter)
+        remoteCmd.append(dstFile)
         if not self.uploadFileToGuest(srcFile, dstFile):
             self.server.logMsg("[FATAL ERROR]: FAILED TO UPLOAD " + srcFile + " TO " + self.vmName)
             return False
