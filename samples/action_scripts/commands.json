@@ -1,0 +1,252 @@
+{
+	"UAC_DISABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+						"cmd.exe",
+						"/k",
+						"%SystemRoot%\\System32\\reg.exe",
+						"ADD",
+						"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+						"/v",
+						"EnableLUA",
+						"/t",
+						"REG_DWORD",
+						"/d",
+						"0",
+						"/f"
+					]
+				]
+		},
+	"UAC_ENABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+						"cmd.exe",
+						"/k",
+						"%SystemRoot%\\System32\\reg.exe",
+						"ADD",
+						"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+						"/v",
+						"EnableLUA",
+						"/t",
+						"REG_DWORD",
+						"/d",
+						"1",
+						"/f"
+					]
+				]
+		},
+	"SMB1_DISABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+					"cmd.exe",
+					"/k",
+					"%SystemRoot%\\System32\\reg.exe",
+					"ADD",
+					"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters",
+					"/v",
+					"SMB1",
+					"/t",
+					"REG_DWORD",
+					"/d",
+					"0",
+					"/f"
+					]
+				]
+		},
+	"SMB1_ENABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+					"cmd.exe",
+					"/k",
+					"%SystemRoot%\\System32\\reg.exe",
+					"ADD",
+					"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters",
+					"/v",
+					"SMB1",
+					"/t",
+					"REG_DWORD",
+					"/d",
+					"1",
+					"/f"
+					]
+				]
+		},
+	"WSUS_DISABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+					"cmd.exe",
+					"/k",
+					"%SystemRoot%\\System32\\reg.exe",
+					"ADD",
+					"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
+					"/v",
+					"NoAutoUpdate",
+					"/t",
+					"REG_DWORD",
+					"/d",
+					"1",
+					"/f"
+					]
+				]
+		},
+	"WSUS_ENABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+					"cmd.exe",
+					"/k",
+					"%SystemRoot%\\System32\\reg.exe",
+					"DELETE",
+					"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
+					"/v",
+					"NoAutoUpdate",
+					"/f"
+					]
+				]
+		},
+	"FIREWALL_DISABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+						"cmd.exe",
+						"/k",
+						"%SystemRoot%\\System32\\netsh",
+						"advfirewall",
+						"set",
+						"allprofiles",
+						"state",
+						"off"
+					]
+				]
+		},
+	"FIREWALL_ENABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+						"cmd.exe",
+						"/k",
+						"%SystemRoot%\\System32\\netsh",
+						"advfirewall",
+						"set",
+						"allprofiles",
+						"state",
+						"on"
+					]
+				]
+		},
+	"DEFENDER_SIGUPDATE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+						"cmd.exe",
+						"/k",
+						"\"%PROGRAMFILES%\\Windows Defender\\MpCmdRun.exe\"",
+						"-SignatureUpdate"
+					]
+				],
+			"WAIT_SECONDS":		300
+		},
+	"DEFENDER_DISABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+				[
+					[
+						"cmd.exe",
+						"/k",
+						"%SystemRoot%\\System32\\reg.exe",
+						"ADD",
+						"\"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\"",
+						"/v",
+						"DisableAntiSpyware",
+						"/t",
+						"REG_DWORD",
+						"/d",
+						"1",
+						"/f"
+					]
+				]
+		},
+	"DEFENDER_ENABLE":
+		{
+			"TYPE": 		"SCRIPT",
+			"FILENAME":		"./action_scripts/defender_enable.vbs",
+			"INTERPRETER":		"%SystemRoot%\\System32\\cscript.exe",
+			"UPLOAD_DIR": 		"C:\\Windows\\Temp",
+			"SUCCESS_TYPE":		"PROCESS",
+			"SUCCESS_METRIC":	"MsMpEng.exe"
+		},
+	"AUTOLOGIN_ENABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+					[
+						[
+							"cmd.exe",
+							"/k",
+							"%SystemRoot%\\System32\\reg.exe",
+							"ADD",
+							"\"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"",
+							"/v",
+							"DefaultUserName",
+							"-t",
+							"REG_SZ",
+							"/d",
+							"VM_USERNAME",
+							"/f"
+						],
+						[
+							"cmd.exe",
+							"/k",
+							"%SystemRoot%\\System32\\reg.exe",
+							"ADD",
+							"\"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"",
+							"/v",
+							"DefaultPassword",
+							"-t",
+							"REG_SZ",
+							"/d",
+							"VM_PASSWORD",
+							"/f"
+						],
+						[
+							"cmd.exe",
+							"/k",
+							"%SystemRoot%\\System32\\reg.exe",
+							"ADD",
+							"\"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"",
+							"/v",
+							"AutoAdminLogon",
+							"/t",
+							"REG_DWORD",
+							"/d",
+							"1",
+							"/f"
+						]
+					]
+		}
+
+}
