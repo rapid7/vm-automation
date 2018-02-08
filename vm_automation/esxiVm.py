@@ -532,7 +532,7 @@ class esxiVm:
                 cmdpid = content.guestOperationsManager.processManager.StartProgramInGuest(vm=self.vmObject,
                                                                                            auth=creds,
                                                                                            spec=cmdspec)
-                retVal = cmdpid
+                retVal = False
                 self.server.logMsg("LAUNCHING '" + ' '.join(cmdAndArgList) + "' ON " + self.vmName)
                 retVal = True
             except vim.fault.InvalidGuestLogin as e:
