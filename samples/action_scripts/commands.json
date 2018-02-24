@@ -247,6 +247,46 @@
 							"/f"
 						]
 					]
+		},
+	"AUTOLOGIN_DISABLE":
+		{
+			"TYPE": 	"COMMANDS",
+			"COMMANDS":
+					[
+						[
+							"cmd.exe",
+							"/k",
+							"%SystemRoot%\\System32\\reg.exe",
+							"DELETE",
+							"\"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"",
+							"/v",
+							"DefaultUserName",
+							"/f"
+						],
+						[
+							"cmd.exe",
+							"/k",
+							"%SystemRoot%\\System32\\reg.exe",
+							"DELETE",
+							"\"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"",
+							"/v",
+							"DefaultPassword",
+							"/f"
+						],
+						[
+							"cmd.exe",
+							"/k",
+							"%SystemRoot%\\System32\\reg.exe",
+							"ADD",
+							"\"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"",
+							"/v",
+							"AutoAdminLogon",
+							"/t",
+							"REG_DWORD",
+							"/d",
+							"0",
+							"/f"
+						]
+					]
 		}
-
 }

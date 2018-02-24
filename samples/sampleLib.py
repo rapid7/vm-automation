@@ -1,5 +1,4 @@
 import json
-import vm_automation
 
 def checkForProcess(vmObject, processName):
     vmObject.updateProcList()
@@ -7,13 +6,6 @@ def checkForProcess(vmObject, processName):
         return True
     else:
         return False
-
-def getVmObjectFromName(vmServer, vmName):
-    vmServer.enumerateVms()
-    for vm in vmServer.vmList:
-        if vmName == vm.vmName:
-            return vm
-    return None
 
 def loadJsonFile(fileName):
     try:
@@ -49,7 +41,10 @@ def makeVmList(vmServer, keywordArg, fileArg):
 
 def waitForProcess(vmObject, procName, timeout = 600):
     retVal = False
-    for i in range(timeout/5):
+    waitCount = 1
+    if timeout > 0:
+        waitCount = timeout/5
+    for i in range(waitCount):
         vmObject.updateProcList()
         if procName in ' '.join(vmObject.procList):
             retVal = True

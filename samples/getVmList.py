@@ -12,10 +12,6 @@ def main():
     CREATE SERVER
     """
     logFile = './service_management.log'
-    try:
-        os.remove(logFile)
-    except:
-        pass
     vmServer = vm_automation.esxiServer.createFromFile(args.hypervisorConfig, logFile)
     if vmServer == None:
         print("VM SERVER CREATION FAILED")

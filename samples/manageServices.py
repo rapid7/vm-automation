@@ -1,16 +1,19 @@
 import argparse
+import signal
 import vm_automation
 import multiprocessing
 import os
 import time
+from tqdm import tqdm
 from pyVmomi import vim
 import sampleLib
-from Crypto.SelfTest.Random.test__UserFriendlyRNG import multiprocessing
+
 
 def listCommands(commandDictionary):
         for key, value in commandDictionary.iteritems():
             print(key)
         return 1
+
 
 def replaceUsername(actionData, username):
     if actionData['TYPE'] == 'COMMANDS':
@@ -18,13 +21,15 @@ def replaceUsername(actionData, username):
             for j in range(len(actionData['COMMANDS'][i])):
                 while 'VM_USERNAME' in actionData['COMMANDS'][i][j]:
                     actionData['COMMANDS'][i][j] = actionData['COMMANDS'][i][j].replace("VM_USERNAME", username)
-                    
+
+
 def replacePassword(actionData, password):
     if actionData['TYPE'] == 'COMMANDS':
         for i in range(len(actionData['COMMANDS'])):
             for j in range(len(actionData['COMMANDS'][i])):
                 while 'VM_PASSWORD' in actionData['COMMANDS'][i][j]:
                     actionData['COMMANDS'][i][j] = actionData['COMMANDS'][i][j].replace("VM_PASSWORD", password)
+
 
 def runCommands(vmObject, actionData):
     for command in actionData['COMMANDS']:
@@ -39,6 +44,7 @@ def runCommands(vmObject, actionData):
             break
     return retVal
 
+
 def runScript(vmObject, actionData):
     localScriptName = actionData['FILENAME']
     interpreter = actionData['INTERPRETER']
@@ -48,17 +54,18 @@ def runScript(vmObject, actionData):
         retVal = vmObject.uploadAndRun(localScriptName, remoteScriptName, interpreter, True)
     except Exception as e:
         print("CAUGHT EXCEPTION: " + str(e))
-        retVal = False
     return retVal
 
+
 def checkSuccess(vmObject, actionData):
+    retVal = False
     if 'SUCCESS_TYPE' in actionData and 'SUCCESS_METRIC' in actionData:
         if actionData['SUCCESS_TYPE'] == 'PROCESS':
             retVal = sampleLib.checkForProcess(vmObject, actionData['SUCCESS_METRIC'])
     else:
         print("NO SUCCESS_TYPE OR SUCCESS METRIC IN THE DICTIONARY")
-        retVal = False
     return retVal
+
 
 def executeAction(vmObject, actionData):
     if 'WAIT_SECONDS' in actionData:
@@ -71,28 +78,32 @@ def executeAction(vmObject, actionData):
     while vmReady is False:
         vmReady = vmObject.waitForVmToBoot()
     time.sleep(10)
-    if actionData['TYPE'] == "COMMANDS":
-        retVal = runCommands(vmObject, actionData)
-    if actionData['TYPE'] == "SCRIPT":
-        retVal = runScript(vmObject, actionData)
-    time.sleep(scheduleDelay)
-    if 'SUCCESS_TYPE' in actionData and 'SUCCESS_METRIC' in actionData:
-        retVal = checkSuccess(vmObject, actionData)
+    try:
+        if actionData['TYPE'] == "COMMANDS":
+            retVal = runCommands(vmObject, actionData)
+        if actionData['TYPE'] == "SCRIPT":
+            retVal = runScript(vmObject, actionData)
+        time.sleep(scheduleDelay)
+        if 'SUCCESS_TYPE' in actionData and 'SUCCESS_METRIC' in actionData:
+            retVal = checkSuccess(vmObject, actionData)
+    except Exception as e:
+        print ("Exception processing " + vmObject.vmName)
+        print (str(e))
     vmObject.vmObject.ShutdownGuest()
     time.sleep(10)
     vmObject.powerOff()
     return retVal
-    
+
+
 def parallelRun(serverConfig, vmName, username, password, actionData, snapshotName):
     """
     CREATE SERVER
     """
-    logFile = './logs/service_management_' + vmName + '.log'
-    try:
-        os.remove(logFile)
-    except:
-        pass
+    logPath = './logs'
+    if not os.path.exists(logPath):
+        os.makedirs(logPath)
 
+    logFile = os.path.join(logPath, "service_management_" + vmName + ".log")
     try:
         logFileObj = open(logFile, 'w')
         logFileObj.write(vmName)
@@ -100,24 +111,22 @@ def parallelRun(serverConfig, vmName, username, password, actionData, snapshotNa
     except:
         print("FAILED TO OPEN " + logFile)
     vmServer = vm_automation.esxiServer.createFromFile(serverConfig, logFile)
-    if vmServer == None:
+    if vmServer is None:
         print("VM SERVER CREATION FAILED")
         return 0
     
     """
     GET VM OBJECT
     """
-    vmObject = sampleLib.getVmObjectFromName(vmServer, vmName)
+    vmObject = vmServer.getVmByName(vmName)
     vmObject.setUsername(username)
     vmObject.setPassword(password)
     
-    if vmObject == None:
+    if vmObject is None:
         retVal = False
     else:
         retVal = executeAction(vmObject, actionData)
-        if retVal != True:
-            reVal = False
-    if retVal:
+    if retVal and snapshotName is not None:
         vmObject.takeSnapshot(snapshotName)
     return (vmName, retVal)
 
@@ -140,12 +149,12 @@ def main():
     """
     PREP COMMAND FILE
     """
-    if args.actionFile != None:
+    if args.actionFile is not None:
         commandFile = args.actionFile
     else:
         commandFile = "./action_scripts/commands.json"
     commandDictionary = sampleLib.loadJsonFile(commandFile)
-    if commandDictionary == None:
+    if commandDictionary is None:
         print("FAILED TO LOAD COMMANDS")
         return 0
     """
@@ -169,31 +178,30 @@ def main():
         print("VM CREDENTIALS REQUIRED FOR THIS OPERATION")
         exit(0)
 
-    credsDictionary = None
-    if args.credsFile != None:
+    if args.credsFile is not None:
         credsDictionary = sampleLib.loadJsonFile(args.credsFile)
-        if credsDictionary == None:
+        if credsDictionary is None:
             print("FAILED TO LOAD CREDS FILE")
             exit(0)
-    
+
     replaceUsername(commandDictionary[args.action], args.username)
     replacePassword(commandDictionary[args.action], args.password)
     """
     UPDATE WAIT, IF REQUIRED
     """
-    if args.wait != None:
+    if args.wait is not None:
         commandDictionary[args.action]['WAIT_SECONDS'] = int(args.wait)
-        
+
     """
     CREATE SERVER
     """
-    logFile = './logs/service_management.log'
-    try:
-        os.remove(logFile)
-    except:
-        pass
+    logPath = './logs'
+    if not os.path.exists(logPath):
+        os.makedirs(logPath)
+
+    logFile = os.path.join(logPath, "service_management.log")
     vmServer = vm_automation.esxiServer.createFromFile(args.hypervisorConfig, logFile)
-    if vmServer == None:
+    if vmServer is None:
         print("VM SERVER CREATION FAILED")
         return 0
     
@@ -201,62 +209,70 @@ def main():
     GENERATE LIST OF VMS THAT NEED TO CHANGE
     """
     vmsToChange = sampleLib.makeVmList(vmServer, args.keyword, args.vmFile)
-    
-    """
-    ARE WE USING THREADS?
-    """
-    if args.threads != None:
-        """
-        EXECUTE IN PARALLEL
-        """
-        pool = multiprocessing.Pool(int(args.threads))
-        print("USING " + str(int(args.threads)) + " THREADS")
-        vmNames = []
+
+    original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    num_threads = 1
+    if args.threads is not None:
+        num_threads = args.threads
+
+    pool = multiprocessing.Pool(int(num_threads))
+    print("USING " + str(int(num_threads)) + " THREADS")
+    try:
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        results = []
+
         for vm in vmsToChange:
-            vmNames.append(vm.vmName)
-        try:
-            results = [pool.apply_async(parallelRun, 
-                                        args = (args.hypervisorConfig, \
-                                                vmName, \
-                                                args.username, \
-                                                args.password, \
-                                                commandDictionary[args.action], \
-                                                args.snapshotName)) \
-                                        for vmName in vmNames]
-        except Exception as e:
-            print("CAUGHT EXCEPTION " + str(e))
+            vm_user = args.username
+            vm_pass = args.password
+            if credsDictionary is not None:
+                for machine in credsDictionary:
+                    if credsDictionary[machine]['NAME'] == vm.vmName:
+                        vm_user = credsDictionary[machine]['USERNAME']
+                        vm_pass = credsDictionary[machine]['PASSWORD']
+
+            thread_args = [
+                args.hypervisorConfig,
+                vm.vmName,
+                vm_user,
+                vm_pass,
+                commandDictionary[args.action],
+                args.snapshotName
+            ]
+            results.append(pool.apply_async(parallelRun, args=thread_args))
+
+        with tqdm(total=len(vmsToChange)) as progress:
+            current_len = 0
+            while current_len < len(vmsToChange):
+                num_ready = 0
+                for result in results:
+                    if result.ready():
+                        num_ready += 1
+                if num_ready > current_len:
+                    progress.update(num_ready - current_len)
+                    current_len = num_ready
+                else:
+                    progress.refresh()
+                time.sleep(5)
+            progress.update(current_len)
+    except KeyboardInterrupt:
+        print("User cancel received, terminating processing")
+        if pool is not None:
+            pool.terminate()
+        exit(-1)
+    else:
         pool.close()
         pool.join()
-        actualResults = []
-        for i in results:
-            try:
-                actualResults.append(i.get())
-            except Exception as e:
-                print("EXCEPTION GENERATED: " + str(e))
-                continue
-        for j in actualResults:
-            print(str(j))
-    else:
-        """
-        RUN THE COMMANDS IN SERIAL
-        """
-        for vm in vmsToChange:
-            if credsDictionary != None and vm.vmName in credsDictionary:
-                vm.setUsername(credsDictionary[vm.vmName]['USERNAME'])
-                vm.setPassword(credsDictionary[vm.vmName]['PASSWORD'])
-            else:
-                vm.setUsername(args.username)
-                vm.setPassword(args.password)
-            if vm.getUsername() == None or vm.getPassword() == None:
-                print ("NO CREDS AVAILABLE FOR " + vm.vmName)
-            else:
-                if executeAction(vm, commandDictionary[args.action]):
-                    retVal = True
-                    if args.snapshotName != None:
-                        vm.takeSnapshot(args.snapshotName)
-                else:
-                    retVal = False
-            print(str((vm.vmName, retVal)))
-    
+
+    actualResults = []
+    for i in results:
+        try:
+            actualResults.append(i.get())
+        except Exception as e:
+            print("EXCEPTION GENERATED: " + str(e))
+            continue
+    for j in actualResults:
+        print(str(j))
+
 if __name__ == "__main__":
     main()

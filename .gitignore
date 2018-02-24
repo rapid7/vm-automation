@@ -4,6 +4,6 @@
 /*.egg-info
 /.idea
 /*.log
-/*.log
+/logs/
 /samples/*.log
 /samples/logs/*.log

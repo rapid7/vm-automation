@@ -198,6 +198,13 @@ class esxiServer:
         self.fullName = content.about.fullName
         return self.fullName
 
+    def getVmByName(self, vmName):
+        self.enumerateVms()
+        for vm in self.vmList:
+            if vmName == vm.vmName:
+                return vm
+        return None
+
 class esxiVm:
     def __init__(self, serverObject, vmObject):
         self.server =           serverObject
@@ -402,7 +409,7 @@ class esxiVm:
         return self.vmUsername
 
     def getPassword(self):
-        return self.vmPassword^M
+        return self.vmPassword
 
     def isTestVm(self):
         return self.testVm
