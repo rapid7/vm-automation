@@ -198,6 +198,13 @@ class esxiServer:
         self.fullName = content.about.fullName
         return self.fullName
 
+    def getVmByName(self, vmName):
+        self.enumerateVms()
+        for vm in self.vmList:
+            if vmName == vm.vmName:
+                return vm
+        return None
+
 class esxiVm:
     def __init__(self, serverObject, vmObject):
         self.server =           serverObject
@@ -401,6 +408,9 @@ class esxiVm:
     def getUsername(self):
         return self.vmUsername
 
+    def getPassword(self):
+        return self.vmPassword
+
     def isTestVm(self):
         return self.testVm
 
@@ -529,7 +539,7 @@ class esxiVm:
                 cmdpid = content.guestOperationsManager.processManager.StartProgramInGuest(vm=self.vmObject,
                                                                                            auth=creds,
                                                                                            spec=cmdspec)
-                retVal = cmdpid
+                retVal = False
                 self.server.logMsg("LAUNCHING '" + ' '.join(cmdAndArgList) + "' ON " + self.vmName)
                 retVal = True
             except vim.fault.InvalidGuestLogin as e:
@@ -640,16 +650,18 @@ class esxiVm:
                 retVal = True
         return retVal
 
-    def uploadAndRun(self, srcFile, dstFile, remoteInterpreter = None):
+    def uploadAndRun(self, srcFile, dstFile, remoteInterpreter = None, useCmdShell = False):
         """
         THIS JUST COMBINES THE UPLOAD AND EXECUTE FUNCTIONS, BUT IF THE VM IS 'NIX, IT ALSO
         CHMODS THE FILE SO WE CAN EXECUTE IT
         """
         self.server.logMsg("SOURCE FILE = " + srcFile + "; DESTINATION FILE = " + dstFile)
+        remoteCmd = []
+        if useCmdShell == True:
+            remoteCmd.extend(['cmd.exe', '/k'])
         if remoteInterpreter!= None:
-            remoteCmd = [remoteInterpreter, dstFile]
-        else:
-            remoteCmd = [dstFile]
+            remoteCmd.append(remoteInterpreter)
+        remoteCmd.append(dstFile)
         if not self.uploadFileToGuest(srcFile, dstFile):
             self.server.logMsg("[FATAL ERROR]: FAILED TO UPLOAD " + srcFile + " TO " + self.vmName)
             return False
