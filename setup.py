@@ -10,6 +10,7 @@ setup(name='vm_automation',
       packages=['vm_automation'],
       install_requires=[
           'pyVmomi',
+          'pyvbox',
       ],
       classifiers=[
             'Development Status :: 4 - Beta',
@@ -23,5 +24,5 @@ setup(name='vm_automation',
             'Programming Language :: Python :: 3.5',
       ],
       platforms=['Windows', 'Linux', 'Solaris', 'Mac OS-X', 'Unix'],
-      keywords='vsphere vmware esx',
+      keywords='vsphere vmware esx virtualbox',
       zip_safe=True)
