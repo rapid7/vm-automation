@@ -9,7 +9,7 @@ setup(name='vm_automation',
       license=open("LICENSE").read(),
       packages=['vm_automation'],
       install_requires=[
-          'pyVmomi', 'pexpect',
+          'pyVmomi', 'paramiko',
       ],
       classifiers=[
             'Development Status :: 4 - Beta',

@@ -10,7 +10,8 @@
 
 import esxiVm
 import json
-import pexpect
+import paramiko
+import socket
 from pyVmomi import vim
 
 
@@ -63,29 +64,14 @@ class esxiSsh(esxiVm.esxiServer):
             self.logMsg("and place it in ovfToolsPath: " + ovfToolsPath)
             return False
 
-        session = pexpect.spawn('scp -o ConnectTimeout=5 ' + ovfToolsPath + ' ' + \
-                                 self.username + '@' + self.hostname + ":/tmp/ovftool.tgz")
-        i = session.expect(['Are you sure you want to continue connecting (yes/no)?', 'Password:', 'Connection refused', 'Connection timed out'])
+        session = self.__loginToEsx()
+        if session is not None:
+            sftp = session.open_sftp()
+            sftp.put(ovfToolsPath, "/tmp/ovftool.tgz")
+            session.close()
+            return True
 
-        if i == 0:
-            # Are you sure you want to continue connecting (yes/no)?
-            session.sendline('yes')
-            session.expect('Password:')
-            session.sendline(self.password)
-        if i == 1:
-            # Password:
-            session.sendline(self.password)
-        if i == 2:
-            self.logMsg("Connection refused.  Confirm that SSH is enabled on the ESXi server")
-            return False
-            # Connection refused
-        if i == 3:
-            self.logMsg("Connection refused.  Confirm the IP address and that SSH is permitted on host.")
-            return False
-            # Connection timed out
-
-        session.expect('100%')
-        return True
+        return False
 
     def cloneToServer(self, srcVm, destServer, destDatastore, destVm, timeout=60*30):
         # Copying between servers takes a while, so the default timeout is 30 minutes.
@@ -115,53 +101,53 @@ class esxiSsh(esxiVm.esxiServer):
             return False
 
         srcServer = self.username + ":" + self.password + "@" + self.hostname
-        session.sendline('/tmp/ovftool/ovftool -dm=thin -ds=' + destDatastore \
-                         + ' --name=' + destVm + ' vi://' + srcServer + '/' + srcVm \
-                         + ' vi://' + destServer)
-        # TODO: Fill in the following for success, timeout/refused, and name already exists
-        i = session.expect(['Completed successfully','Error: Internal error: Failed to connect to server','Error: Duplicate name','Invalid target datastore specified','No network mapping specified'],timeout=timeout)
-        if i == 0:
-            # Completed successfully
-            return True
-        elif i == 1:
-            # Error: Internal error: Failed to connect to server
-            #   (Note: This occurs when there's a timeout or connection refused.  No way to discern the difference.)
-            self.logMsg("Unable to connect to destination server.  Connection timed out or refused.")
-        elif i == 2:
-            # Error: Duplicate name
-            self.logMsg("VM name already exists on destination server")
-        elif i == 3:
-            # Invalid target datastore specified
-            self.logMsg("Datastore name not found on destination server")
-        elif i == 4:
-            # No network mapping specified.
-            self.logMsg("Destination server is missing the case-sensitive network name required by this VM.")
+        try:
+            stdin, stdout, stderr = session.exec_command('/tmp/ovftool/ovftool -dm=thin -ds=' + destDatastore +
+                                                         ' --name=' + destVm + ' vi://' + srcServer + '/' + srcVm +
+                                                         ' vi://' + destServer)
+            output = stdout.read()
+            if 'Completed successfully' in output:
+                return True
+            if 'Error: Internal error: Failed to connect to server' in output:
+                self.logMsg("Unable to connect to destination server.  Connection timed out or refused.")
+            if 'Error: Duplicate name' in output:
+                self.logMsg("VM name already exists on destination server")
+            if 'Invalid target datastore specified' in output:
+                self.logMsg("Datastore name not found on destination server")
+            if 'No network mapping specified' in output:
+                self.logMsg("Destination server is missing the case-sensitive network name required by this VM.")
+        except paramiko.SSHException:
+            self.logMsg("Failed to execute ovftool based clone.")
         return False
 
     def __deployOvfTool(self,session):
         # Clear any previous files/directories
-        session.sendline('rm -rf /tmp/ovftool*')
+        session.exec_command('rm -rf /tmp/ovftool*')
 
         # SCP the OVF tool to the source server
         if self.__copyOvfTool() is False:
             return False
 
-        # Deploy the OVF tool
-        session.sendline('mkdir /tmp/ovftool')
-        session.sendline('tar xf /tmp/ovftool.tgz -C /tmp/ovftool')
+        try:
+            # Deploy the OVF tool
+            session.exec_command('mkdir /tmp/ovftool')
+            session.exec_command('tar xf /tmp/ovftool.tgz -C /tmp/ovftool')
 
-        # Confirm OVF tool deployed properly
-        session.sendline('/tmp/ovftool/ovftool --version')
-        session.expect('VMware ovftool', timeout=5)
+            # Confirm OVF tool deployed properly
+            session.exec_command('/tmp/ovftool/ovftool --version')
+        except paramiko.SSHException:
+            self.logMsg("Failed to deploy OVFTool")
 
     def __toggleFirewallRules(self, session, enabled=False):
         prompt = ':~]'
         session.expect(prompt)
 
         for service in ['sshClient','httpClient']:
-            session.sendline('esxcli network firewall ruleset set -e ' + str(enabled).lower() + \
-                             ' -r ' + service)
-            session.expect(prompt)
+            try:
+                session.exec_command('esxcli network firewall ruleset set -e ' + str(enabled).lower() +
+                                     ' -r ' + service)
+            except paramiko.SSHException:
+                self.logMsg("Failed to change firewall for: " + service)
 
     def clone(self, srcVm, destVm, thinProvision=True):
         # srcVm = string, name of source VM
@@ -180,80 +166,82 @@ class esxiSsh(esxiVm.esxiServer):
 
         session = self.__loginToEsx()
 
-        # Make destination directory
-        session.sendline('cd ' + path)
-        session.sendline('mkdir ' + destVm)
-        session.sendline('ls ' + path + '/' + destVm)
-        self.logMsg("Created destination path at: " + path + '/' + destVm)
-
-        # Copy non-VMDK files from source VM to destination VM
-        session.sendline('find "' + path + '/' + srcVm + '" -maxdepth 1 -type f | grep -v ".vmdk"' + \
-                         ' | while read file; do cp "$file" "' + path + '/' + destVm + '"; done')
-        self.logMsg("Copied all on vmdk files to: " + path + '/' + destVm)
-
-        # Copy VMDK files from source VM to destination VM
-        destVmdk = srcVmdk.split('/')[-1]
-        if thinProvision:
-            session.sendline('vmkfstools -i "' + path + '/' + srcVmdk + '" -d thin "' \
-                             + path + '/' + destVm + '/' + destVmdk + '"')
-        else:
-            session.sendline('vmkfstools -i "' + path + '/' + srcVmdk + '" -d zeroedthick "' \
-                             + path + '/' + destVm + '/' + destVmdk + '"')
-
-        # Wait for the VMDK copying to complete, and check for errors
-        while True:
-            i = session.expect(["Clone: 100% done.","Failed to clone disk","Failed to lock the file"], timeout=60*30)
-            if i == 0:
-                break
-            elif i == 1:
-                try:
-                    session.expect("The file already exists", timeout=1)
-                    self.logMsg("The VMDK already exists.  Pick a different destination VM name, or clean up your datastore first.")
-                    return False
-                except pexpect.TIMEOUT:
-                    self.logMsg("An unknown error occured copying the VMDK.  Here, have a shell:")
-                    session.interact()
-            elif i == 2:
-                self.logMsg("Unable to lock the VMDK file.  The VM must be powered off.")
-                return False
-        self.logMsg("Copied vmdk files to: " + path + '/' + destVm)
-
-        # One last thing, register the new VM in the ESXi inventory
-        session.sendline('vim-cmd solo/registervm ' + path + '/' + destVm + '/' + srcVm + '.vmx ' \
-                         + destVm)
-        try:
-            i = session.expect(['^[0-9]+$'], timeout=30)
-            if i == 0:
-                self.logMsg(str(session.before))
-                self.logMsg(str(session.after))
-            else:
-                self.logMsg("???")
-            session.sendline("exit")
-            session.expect(["Connection to .* closed."], timeout=10)
-            self.logMsg("Registered " + destVm)
-            return True
-        except pexpect.TIMEOUT:
-            self.logMsg("Failed to registered " + destVm + ". TIMEOUT")
+        if session is None:
             return False
 
+        result = True
+
+        # Make destination directory
+        try:
+            session.exec_command('mkdir -p ' + path + "/" + destVm)
+        except paramiko.SSHException:
+            self.logMsg("Failed to create path: " + path + "/" + destVm)
+            result = False
+
+        if result:
+            # Copy non-VMDK files from source VM to destination VM
+            try:
+                session.exec_command('find "' + path + '/' + srcVm +
+                                     '" -maxdepth 1 -type f | grep -v ".vmdk"' +
+                                     ' | while read file; do cp "$file" "' + path +
+                                     '/' + destVm + '"; done')
+                self.logMsg("Copied all non-vmdk files to: " + path + '/' + destVm)
+            except paramiko.SSHException:
+                self.logMsg("Failed to copy non-vmdk files.")
+                result = False
+
+        if result:
+            # Copy VMDK files from source VM to destination VM
+            try:
+                destVmdk = srcVmdk.split('/')[-1]
+                if thinProvision:
+                    stdin, stdout, stderr = session.exec_command('vmkfstools -i "' + path + '/' + srcVmdk + '" -d thin "' +
+                                                                 path + '/' + destVm + '/' + destVmdk + '"')
+                else:
+                    stdin, stdout, stderr = session.exec_command('vmkfstools -i "' + path + '/' + srcVmdk + '" -d zeroedthick "' +
+                                                                 path + '/' + destVm + '/' + destVmdk + '"')
+                output = stdout.read()
+                if "Failed to clone disk" in output:
+                    self.logMsg("Failed to clone remote image.")
+                    result = False
+                if "Failed to clone disk" in output:
+                    self.logMsg("Failed to obtain lock during clone.")
+                    result = False
+            except paramiko.SSHException:
+                self.logMsg("Failed to clone vmdk image.")
+                result = False
+
+        if result:
+            try:
+                session.exec_command('vim-cmd solo/registervm ' + path + '/' + destVm + '/' +
+                                     srcVm + '.vmx ' + destVm)
+            except paramiko.SSHException:
+                self.logMsg("Failed to register clone as " + destVm + ".")
+                result = False
+
+        session.close()
+        return result
+
     def __loginToEsx(self):
-        session = pexpect.spawn('ssh -o ConnectTimeout=5 ' + self.username + '@' + self.hostname)
-        i = session.expect(['Are you sure you want to continue connecting (yes/no)?', 'Password:', 'Connection refused', 'Connection timed out'])
-        if i == 0:
-            # Are you sure you want to continue connecting (yes/no)?
-            session.sendline('yes')
-            session.expect('Password:')
-            session.sendline(self.password)
-        if i == 1:
-            # Password:
-            session.sendline(self.password)
-        if i == 2:
-            self.logMsg("Connection refused.  Confirm that SSH is enabled on the ESXi server")
-            # Connection refused
-        if i == 3:
-            self.logMsg("Connection refused.  Confirm the IP address and that SSH is permitted on hte ESXi firewall")
-            # Connection timed out
-        return session
+        session = paramiko.SSHClient()
+        session.load_system_host_keys()
+        session.set_missing_host_key_policy(paramiko.client.AutoAddPolicy)
+
+        try:
+            if self.password is not None:
+                session.connect(hostname=self.hostname, password=self.password)
+            else:
+                session.connect(hostname=self.hostname)
+            return session
+        except paramiko.BadHostKeyException:
+            self.logMsg("Rejected for changed host key.")
+        except paramiko.AuthenticationException:
+            self.logMsg("Failed to authenticate.")
+        except paramiko.SSHException:
+            self.logMsg("Failed to connect, connection failed.")
+        except socket.error:
+            self.logMsg("Failed to connect, host cannot be reached.")
+        return None
 
     def __findVmdkPath(self, srcVm):
         # srcVm could be a name (str), a vmId (int), or a vm object (vmObject)
