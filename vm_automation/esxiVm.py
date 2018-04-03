@@ -52,7 +52,7 @@ class esxiServer:
     def createFromFile(configFile, logFile="defaultLogfile.log"):
         """
         IN MOST USE CASES, I JUST EXPECT A JSON FILE, SO I MADE AN OPTIONAL
-        CONSTRUCTOR THAT TAK
+        CONSTRUCTOR THAT TAKES A JSON FILE
         """
         try:
             fileObj = open(configFile, 'r')
@@ -68,8 +68,8 @@ class esxiServer:
 
     def connect(self):
         """
-        connect() INTITATES A CONNECTION TO THE ESXi SERVER AND STORES THE RESULT IN
-        THE CLASS VARIABLE connection.  AFTER THE INTITIAL CONNECT, MEMBER FUNCTUONS
+        connect() INITIATES A CONNECTION TO THE ESXi SERVER AND STORES THE RESULT IN
+        THE CLASS VARIABLE connection.  AFTER THE INITIAL CONNECT, MEMBER FUNCTIONS
         USE THE connection VARIABLE.
         """
         retVal = True
@@ -136,7 +136,7 @@ class esxiServer:
         IF YOU TRY AND INTERACT WITH A VM BEFORE IT FINISHES LOADING VMWARE TOOLS, IT CAUSES A FAULT AND CRASHES
         IF YOU TRY AND INTERACT WITH A VM BEFORE IT FINISHES BOOTING, IT CAUSES A FAULT AND CRASHES
         IF YOU TRY AND CHECK IF IT BOOTED BEFORE TOOLS ARE RUNNING, IT CAUSES A FAULT AND CRASHES
-        THIS JUST POLLS THE TOOLS INSTALLATION UNTIL TOOLS REPONDS CORRECTLY, THEN STARTS ASKING FOR THE IP
+        THIS JUST POLLS THE TOOLS INSTALLATION UNTIL TOOLS RESPONDS CORRECTLY, THEN STARTS ASKING FOR THE IP
         ADDRESS.  ONCE THE IP ADDRESS COMES UP, YOU CAN USE IT.
         """
         self.logMsg("WAITING FOR VMS TO BE READY; THIS COULD TAKE A FEW MINUTES")
@@ -178,7 +178,7 @@ class esxiServer:
         """
         THERE ARE SEVERAL WAYS TO ENUMERATE VMs. THIS IS BY FAR THE EASIEST,
         BUT I AM NOT SURE IF IT WILL WORK ON LARGER DEPLOYMENTS BECAUSE OF
-        vSPHERE'S HEIRARCHIAL STORAGE METHODOLOGY
+        vSPHERE'S HIERARCHICAL STORAGE METHODOLOGY
         """
         content = self.connection.content
         objView = content.viewManager.CreateContainerView(content.rootFolder,
@@ -223,7 +223,7 @@ class esxiServer:
         path, srcVmdk = self.__findVmdkPath(srcVm)
 
         if path is None or srcVmdk is None:
-            self.logMsg("Unabled to find VM to clone.")
+            self.logMsg("Unable to find VM to clone.")
             return False
 
         session = self.__loginToEsx()
@@ -318,9 +318,11 @@ class esxiServer:
                 result = False
 
         if result:
+            self.logMsg("Successfully cloned vmdk image.")
             try:
                 session.exec_command('vim-cmd solo/registervm ' + path + '/' + destVm + '/' +
                                      srcVm + '.vmx ' + destVm)
+                self.logMsg("Successfully registered clone as " + destVm + ".")
             except paramiko.SSHException:
                 self.logMsg("Failed to register clone as " + destVm + ".")
                 result = False
@@ -579,14 +581,6 @@ class esxiVm:
 
     def getArch(self):
         return self.arch
-
-    def ghettoClone(self, newVmName):
-        """
-        TODO
-        """
-        vmDataCenter = self.getDataCenter()
-        vim.FileManager.CopyDataStoreFile(self.vmObject.parent)
-        # vim.Datastore.FileManager.CopyDatastoreFile(vmToCopy.parent)
 
     def getDataCenter(self):
         content = self.server.connection.RetrieveContent()
