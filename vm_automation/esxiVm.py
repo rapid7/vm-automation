@@ -389,9 +389,7 @@ class esxiServer:
 
         try:
             if self.password is not None:
-                session.connect(hostname=self.hostname, password=self.password)
-            else:
-                session.connect(hostname=self.hostname)
+                session.connect(hostname=self.hostname, username=self.username, password=self.password)
             return session
         except paramiko.BadHostKeyException:
             self.logMsg("Rejected for changed host key.")
