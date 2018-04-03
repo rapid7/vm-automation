@@ -8,8 +8,10 @@ from string import ascii_lowercase
 
 import datetime
 import json
+import paramiko
 import requests
 import ssl
+import socket
 import time
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -205,6 +207,269 @@ class esxiServer:
             if vmName == vm.vmName:
                 return vm
         return None
+
+    def cloneToServer(self, srcVm, destServer, destDatastore, destVm, timeout=60*30):
+        # Copying between servers takes a while, so the default timeout is 30 minutes.
+        if type(srcVm) != str or type(destVm) != str:
+            self.logMsg("Source and destination VMs must be the VM names as strings.")
+            return False
+        elif type(destDatastore) != str:
+            self.logMsg("Destination datastore must be a string.")
+            return False
+        elif type(destServer) != str:
+            self.logMsg("Destination datastore must be the IP address as a string.")
+            return False
+
+        path, srcVmdk = self.__findVmdkPath(srcVm)
+
+        if path is None or srcVmdk is None:
+            self.logMsg("Unabled to find VM to clone.")
+            return False
+
+        session = self.__loginToEsx()
+
+        # Configure source server firewall to allow outbound SSH and HTTP
+        self.__toggleFirewallRules(session, enabled=True)
+
+        # Deploy OVF Tool on source server
+        if self.__deployOvfTool(session) is False:
+            return False
+
+        srcServer = self.username + ":" + self.password + "@" + self.hostname
+        try:
+            stdin, stdout, stderr = session.exec_command('/tmp/ovftool/ovftool -dm=thin -ds=' + destDatastore +
+                                                         ' --name=' + destVm + ' vi://' + srcServer + '/' + srcVm +
+                                                         ' vi://' + destServer)
+            output = stdout.read()
+            if 'Completed successfully' in output:
+                return True
+            if 'Error: Internal error: Failed to connect to server' in output:
+                self.logMsg("Unable to connect to destination server.  Connection timed out or refused.")
+            if 'Error: Duplicate name' in output:
+                self.logMsg("VM name already exists on destination server")
+            if 'Invalid target datastore specified' in output:
+                self.logMsg("Datastore name not found on destination server")
+            if 'No network mapping specified' in output:
+                self.logMsg("Destination server is missing the case-sensitive network name required by this VM.")
+        except paramiko.SSHException:
+            self.logMsg("Failed to execute ovftool based clone.")
+        return False
+
+    def clone(self, srcVm, destVm, thinProvision=True):
+        # srcVm = string, name of source VM
+        # destVm = string, name of destination VM
+        #    Limitations:
+        #         Source VM must exist on one datastore
+        #         Source VM name must be unique
+        #         esxiServer must not be a vCenter server
+        #         VM cannot contain multiple disks
+
+        if type(srcVm) != str or type(destVm) != str:
+            self.logMsg("Source and destination VMs must be the VM names as strings.")
+            return False
+
+        path, srcVmdk = self.__findVmdkPath(srcVm)
+
+        session = self.__loginToEsx()
+
+        if session is None:
+            return False
+
+        result = True
+
+        # Make destination directory
+        try:
+            session.exec_command('mkdir -p ' + path + "/" + destVm)
+        except paramiko.SSHException:
+            self.logMsg("Failed to create path: " + path + "/" + destVm)
+            result = False
+
+        if result:
+            # Copy non-VMDK files from source VM to destination VM
+            try:
+                session.exec_command('find "' + path + '/' + srcVm +
+                                     '" -maxdepth 1 -type f | grep -v ".vmdk"' +
+                                     ' | while read file; do cp "$file" "' + path +
+                                     '/' + destVm + '"; done')
+                self.logMsg("Copied all non-vmdk files to: " + path + '/' + destVm)
+            except paramiko.SSHException:
+                self.logMsg("Failed to copy non-vmdk files.")
+                result = False
+
+        if result:
+            # Copy VMDK files from source VM to destination VM
+            try:
+                destVmdk = srcVmdk.split('/')[-1]
+                if thinProvision:
+                    stdin, stdout, stderr = session.exec_command('vmkfstools -i "' + path + '/' + srcVmdk + '" -d thin "' +
+                                                                 path + '/' + destVm + '/' + destVmdk + '"')
+                else:
+                    stdin, stdout, stderr = session.exec_command('vmkfstools -i "' + path + '/' + srcVmdk + '" -d zeroedthick "' +
+                                                                 path + '/' + destVm + '/' + destVmdk + '"')
+                output = stdout.read()
+                if "Failed to clone disk" in output:
+                    self.logMsg("Failed to clone remote image.")
+                    result = False
+                if "Failed to clone disk" in output:
+                    self.logMsg("Failed to obtain lock during clone.")
+                    result = False
+            except paramiko.SSHException:
+                self.logMsg("Failed to clone vmdk image.")
+                result = False
+
+        if result:
+            try:
+                session.exec_command('vim-cmd solo/registervm ' + path + '/' + destVm + '/' +
+                                     srcVm + '.vmx ' + destVm)
+            except paramiko.SSHException:
+                self.logMsg("Failed to register clone as " + destVm + ".")
+                result = False
+
+        session.close()
+        return result
+
+    def __copyOvfTool(self):
+        # TODO: Detect if this version of ovftool is already present on remote server, then return true
+
+        ovfToolsPath = './ovftool-4.2.0-4586971.tgz'
+        ovfToolsURL = 'https://my.vmware.com/group/vmware/details?downloadGroup=OVFTOOL420&productId=491'
+        try:
+            f = open(ovfToolsPath,"rb");
+            f.close()
+        except IOError:
+            self.logMsg("FATAL ERROR: VMware 'ovftool' is required for server-to-server cloning.  Download it from VMware at:")
+            self.logMsg("   " + ovfToolsURL)
+            self.logMsg("and place it in ovfToolsPath: " + ovfToolsPath)
+            return False
+
+        session = self.__loginToEsx()
+        if session is not None:
+            sftp = session.open_sftp()
+            sftp.put(ovfToolsPath, "/tmp/ovftool.tgz")
+            session.close()
+            return True
+
+        return False
+
+    def __deployOvfTool(self, session):
+        # Clear any previous files/directories
+        session.exec_command('rm -rf /tmp/ovftool*')
+
+        # SCP the OVF tool to the source server
+        if self.__copyOvfTool() is False:
+            return False
+
+        try:
+            # Deploy the OVF tool
+            session.exec_command('mkdir /tmp/ovftool')
+            session.exec_command('tar xf /tmp/ovftool.tgz -C /tmp/ovftool')
+
+            # Confirm OVF tool deployed properly
+            session.exec_command('/tmp/ovftool/ovftool --version')
+        except paramiko.SSHException:
+            self.logMsg("Failed to deploy OVFTool")
+
+    def __toggleFirewallRules(self, session, enabled=False):
+        prompt = ':~]'
+        session.expect(prompt)
+
+        for service in ['sshClient', 'httpClient']:
+            try:
+                session.exec_command('esxcli network firewall ruleset set -e ' + str(enabled).lower() +
+                                     ' -r ' + service)
+            except paramiko.SSHException:
+                self.logMsg("Failed to change firewall for: " + service)
+
+    def __loginToEsx(self):
+        session = paramiko.SSHClient()
+        session.load_system_host_keys()
+        session.set_missing_host_key_policy(paramiko.client.AutoAddPolicy)
+
+        try:
+            if self.password is not None:
+                session.connect(hostname=self.hostname, password=self.password)
+            else:
+                session.connect(hostname=self.hostname)
+            return session
+        except paramiko.BadHostKeyException:
+            self.logMsg("Rejected for changed host key.")
+        except paramiko.AuthenticationException:
+            self.logMsg("Failed to authenticate.")
+        except paramiko.SSHException:
+            self.logMsg("Failed to connect, connection failed.")
+        except socket.error:
+            self.logMsg("Failed to connect, host cannot be reached.")
+        return None
+
+    def __findVmdkPath(self, srcVm):
+        # srcVm could be a name (str), a vmId (int), or a vm object (vmObject)
+        # destVm must be a name (what about workstation?  where will I store the new VM?)
+        #                        what about ESXi?  What datastore should I use?
+
+        self.enumerateVms()
+
+        if type(srcVm) == str:
+            datastore, srcVmdk = self.__findVmdkByName(srcVm)
+
+        if not datastore or not srcVmdk:
+            self.logMsg("Source VMDK could not be located")
+            return None, None
+
+        path = self.__findDatastorePath(datastore)
+
+        return path, srcVmdk
+
+    def __findVmdkByName(self, srcVm):
+        vmObject = None
+
+        for vm in self.vmList:
+            if vm.vmName == srcVm and vmObject == None:
+                vmObject = vm.vmObject
+            elif vm.vmName == srcVm:
+                self.logMsg("Unable to identify source VM.  Multiple VMs have that name")
+                return None, None
+
+        if vmObject == None:
+            self.logMsg("Unable to identify source VM.  No VM found with that name")
+            return None, None
+
+        if len(vmObject.config.datastoreUrl) > 1:
+            self.logMsg("VM uses multiple datastores. Clone not supported.")
+            return None, None
+
+        src = None
+
+        for device in vmObject.config.hardware.device:
+           if str(type(device)) == "<class 'pyVmomi.VmomiSupport.vim.vm.device.VirtualDisk'>":
+               if src == None:
+                   src = device.backing.fileName
+               else:
+                   self.logMsg("VM has multiple disks. Clone not supported.")
+                   return None, None
+
+        (datastore, srcVmdk) = src.split(" ")
+        datastore = datastore[1:-1]
+
+        return datastore, srcVmdk
+
+    def __findDatastorePath(self,datastoreName):
+        content = self.connection.content
+        objView = content.viewManager.CreateContainerView(content.rootFolder,
+                                                          [vim.HostSystem],
+                                                          True)
+        view = objView.view
+        objView.Destroy()
+
+        if len(view) > 1:
+            self.logMsg("Multiple ESXi hosts found.  You must connect to the ESXi server directly, not vCenter")
+            return False
+
+        datastores = view[0].configManager.storageSystem.fileSystemVolumeInfo.mountInfo
+
+        for datastore in datastores:
+            if datastore.volume.type == "VMFS" and datastore.volume.name == datastoreName:
+                return datastore.mountInfo.path
+
 
 class esxiVm:
     def __init__(self, serverObject, vmObject):
