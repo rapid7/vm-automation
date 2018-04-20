@@ -197,8 +197,38 @@
 			"INTERPRETER":		"%SystemRoot%\\System32\\cscript.exe",
 			"UPLOAD_DIR": 		"C:\\Windows\\Temp",
 			"SUCCESS_TYPE":		"PROCESS",
-			"SUCCESS_METRIC":	"MsMpEng.exe"
+			"SUCCESS_METRIC":	"MsMpEng.exe",
+			"WAIT_SECONDS":		300
+
 		},
+	"INSTALL_AVAST":
+		{
+			"TYPE": 		"EXE",
+			"FILENAME":		"./action_scripts/ninite_avast_installer.exe",
+			"UPLOAD_DIR": 		"C:\\Windows\\Temp",
+			"SUCCESS_TYPE":		"PROCESS",
+			"SUCCESS_METRIC":	"AvastSvc.exe",
+			"WAIT_SECONDS":		300
+		},
+	"INSTALL_MALWAREBYTES":
+		{
+			"TYPE": 		"EXE",
+			"FILENAME":		"./action_scripts/ninite_malwarebytes_installer.exe",
+			"UPLOAD_DIR": 		"C:\\Windows\\Temp",
+			"SUCCESS_TYPE":		"PROCESS",
+			"SUCCESS_METRIC":	"MBAMService.exe",
+			"WAIT_SECONDS":		300
+		},
+	"INSTALL_AVG":
+		{
+			"TYPE": 		"EXE",
+			"FILENAME":		"./action_scripts/ninite_avg_installer.exe",
+			"UPLOAD_DIR": 		"C:\\Windows\\Temp",
+			"SUCCESS_TYPE":		"PROCESS",
+			"SUCCESS_METRIC":	"AVGSvc.exe",
+			"WAIT_SECONDS":		300
+		},
+
 	"AUTOLOGIN_ENABLE":
 		{
 			"TYPE": 	"COMMANDS",
