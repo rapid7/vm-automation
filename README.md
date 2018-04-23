@@ -56,7 +56,18 @@ tmoose@ubuntu:~/rapid7/vm-automation$ python
 >>> print myserver.connect()
 True
 ```
-OK, yeah; I probably should not have made the port number a string....
+
+Alternatively, to make automation easier, you can create a hypervisor configuration file containing the same information:
+```
+{
+	"HYPERVISOR_TYPE":		"ESXI",
+	"HYPERVISOR_HOST":		"xxx.xxx.xxx.xxx",
+	"HYPERVISOR_USERNAME":		"my_username",
+	"HYPERVISOR_PASSWORD":		"secret_password",
+	"HYPERVISOR_LISTENING_PORT":	443
+}
+```
+OK, yeah; I probably should not have made the port number a string in the constructor, but a number in the config file....
 Anyway, that `connect` got us a connection to the server which is stored
 in the class and reused when we need to talk to the server.  It also 
 registered the connection for removal when our process exits.
