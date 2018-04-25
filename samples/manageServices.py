@@ -56,6 +56,16 @@ def runScript(vmObject, actionData):
         print("CAUGHT EXCEPTION: " + str(e))
     return retVal
 
+def runExe(vmObject, actionData):
+    localFileName = actionData['FILENAME']
+    remoteFileName = actionData['UPLOAD_DIR'] + "\\" + localFileName.split('/')[-1]
+    retVal = False
+    try:
+        retVal = vmObject.uploadAndRun(localFileName, remoteFileName, "", True)
+    except Exception as e:
+        print("CAUGHT EXCEPTION: " + str(e))
+    return retVal
+
 
 def checkSuccess(vmObject, actionData):
     retVal = False
@@ -81,6 +91,8 @@ def executeAction(vmObject, actionData):
     try:
         if actionData['TYPE'] == "COMMANDS":
             retVal = runCommands(vmObject, actionData)
+        if actionData['TYPE'] == "EXE":
+            retVal = runExe(vmObject, actionData)
         if actionData['TYPE'] == "SCRIPT":
             retVal = runScript(vmObject, actionData)
         time.sleep(scheduleDelay)
@@ -178,6 +190,7 @@ def main():
         print("VM CREDENTIALS REQUIRED FOR THIS OPERATION")
         exit(0)
 
+    credsDictionary = None
     if args.credsFile is not None:
         credsDictionary = sampleLib.loadJsonFile(args.credsFile)
         if credsDictionary is None:
