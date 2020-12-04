@@ -488,10 +488,13 @@ class esxiVm:
         self.uploadDir =        ""
         self.payloadList =      []
         self.resultDict =       {}
-        if '64-bit' in self.vmOS:
-            self.arch = 'x64'
+        if self.vmOS is not None:
+            if '64-bit' in self.vmOS:
+                self.arch = 'x64'
+            else:
+                self.arch = 'x86'
         else:
-            self.arch = 'x86'
+            self.arch = 'unknown'
 
     def waitForVmToBoot(self):
         # IS IT TURNED ON?
