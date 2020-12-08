@@ -37,6 +37,10 @@ def makeVmList(vmServer, keywordArg, fileArg):
         for vm in vmServer.vmList:
             if keywordArg in vm.vmName:
                 vmList.append(vm)
+    else:
+        vmServer.enumerateVms()
+        for vm in vmServer.vmList:
+            vmList.append(vm)
     return vmList
 
 def waitForProcess(vmObject, procName, timeout = 600):
