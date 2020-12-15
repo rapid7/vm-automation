@@ -890,10 +890,15 @@ class esxiVm:
                      dumpMemory = False,
                      setQuiescent = False):
         self.server.logMsg("TAKING SNAPSHOT " + snapshotName + " ON " + self.vmName)
-        snapshotTask = self.vmObject.CreateSnapshot_Task(snapshotName,
-                                                      snapshotDescription,
-                                                      dumpMemory,
-                                                      setQuiescent)
+        try:
+            snapshotTask = self.vmObject.CreateSnapshot_Task(snapshotName,
+                                                          snapshotDescription,
+                                                          dumpMemory,
+                                                          setQuiescent)
+        except vim.fault.RestrictedVersion:
+            self.server.logMsg("[WARNING]: SNAPSHOTS NOT SUPPORTED FOR " + self.vmName + " ON TARGET")
+            return False
+
         if not asyncFlag:
             return self.waitForTask(snapshotTask)
         else:
