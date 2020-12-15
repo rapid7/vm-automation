@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vm_automation',
-      version='0.1.8',
+      version='0.1.9',
       description='Virtual infrastructure automation simplified interaction library',
       url='http://github.com/rapid7/vm-automation',
       author='Metasploit Hackers',
