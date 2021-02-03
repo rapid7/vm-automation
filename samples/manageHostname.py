@@ -11,7 +11,7 @@ def updateHostname(vm, hostname):
     if powerState == False:
         vm.powerOn()
         startCount = 5
-        while vm.checkTools() != 'TOOLS_READY' and startCount > 0
+        while vm.checkTools() != 'TOOLS_READY' and startCount > 0:
             time.sleep(5)
             startCount -= 1
 
