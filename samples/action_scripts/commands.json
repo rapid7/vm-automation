@@ -318,5 +318,16 @@
 							"/f"
 						]
 					]
-		}
+		},
+
+	"INSTALL_ACTIVE_DIRECTORY_DOMAIN_SERVICES": {
+		"TYPE": "SCRIPT",
+		"TODO": "XXX: Confirm if relative paths for FILENAME work here on CI: ./action_scripts/install_active_directory_forest.ps1",
+		"FILENAME": "/r7-source/vm-automation/samples/action_scripts/install_active_directory_forest.ps1",
+		"INTERPRETER": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+		"UPLOAD_DIR": "C:\\Windows\\Temp",
+		"SUCCESS_TYPE": "PROCESS",
+		"SUCCESS_METRIC": "Microsoft.ActiveDirectory.WebServices.exe",
+		"WAIT_SECONDS": 1200
+	}
 }
