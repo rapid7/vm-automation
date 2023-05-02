@@ -25,15 +25,6 @@ secedit /export /cfg c:\secpol.cfg
 secedit /configure /db c:\windows\security\local.sdb /cfg c:\secpol.cfg /areas SECURITYPOLICY
 rm -force c:\secpol.cfg -confirm:$false
 
-##################################################################################
-# Disable Antivirus
-##################################################################################
-
-if (Get-Module -ListAvailable -Name Defender) {
-    Set-MpPreference -DisableRealtimeMonitoring $true
-    New-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender" -Name DisableAntiSpyware -Value 1 -PropertyType DWORD -Force
-}
-
 #####################################################################################
 # Forest installation
 #####################################################################################
