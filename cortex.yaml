@@ -1,0 +1,15 @@
+---
+info:
+  title: Vm Automation
+  description: Created to simplify interactions with virtual machines
+  x-cortex-git:
+    github:
+      alias: r7org
+      repository: rapid7/vm-automation
+  x-cortex-tag: vm-automation
+  x-cortex-type: service
+  x-cortex-domain-parents:
+  - tag: vm-console
+openapi: 3.0.1
+servers:
+- url: "/"
