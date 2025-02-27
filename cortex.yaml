@@ -1,4 +1,4 @@
----
+openapi: 3.0.1
 info:
   title: Vm Automation
   description: Created to simplify interactions with virtual machines
@@ -9,7 +9,8 @@ info:
   x-cortex-tag: vm-automation
   x-cortex-type: service
   x-cortex-domain-parents:
-  - tag: vm-console
-openapi: 3.0.1
-servers:
-- url: "/"
+  - tag: insightvm
+  x-cortex-groups:
+   - target:library
+   - strategy:on-prem
+   - exposure:internal-ship
