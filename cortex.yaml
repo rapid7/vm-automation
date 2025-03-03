@@ -9,7 +9,7 @@ info:
   x-cortex-tag: vm-automation
   x-cortex-type: service
   x-cortex-domain-parents:
-  - tag: insightvm
+  - tag: vm-console
   x-cortex-groups:
    - target:library
    - strategy:on-prem
